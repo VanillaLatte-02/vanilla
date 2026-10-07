@@ -5,6 +5,7 @@ use yii\widgets\ActiveForm;
 use yii\helpers\ArrayHelper;
 use app\models\Kategori;
 use app\models\SatuanBarang;
+use kartik\file\FileInput;
 
 /* @var $this yii\web\View */
 /* @var $model app\models\Barang */
@@ -16,17 +17,20 @@ $this->params['breadcrumbs'][] = $this->title;
 $this->registerJsFile('https://cdn.jsdelivr.net/npm/autonumeric@4.6.0/dist/autoNumeric.min.js', ['depends' => [\yii\web\JqueryAsset::class]]);
 
 $this->registerJs("
-    const hargaInput = new AutoNumeric('#harga-input', {
+    const autoNumericOptions = {
         currencySymbol: 'Rp ',
         decimalCharacter: ',',
         digitGroupSeparator: '.',
         decimalPlaces: 0,
         unformatOnSubmit: true
-    });
+    };
+
+    const hargaBeliInput = new AutoNumeric('#harga-beli-input', autoNumericOptions);
+    const hargaJualInput = new AutoNumeric('#harga-jual-input', autoNumericOptions);
 
     $('#form-id').on('submit', function() {
-        var rawValue = hargaInput.getNumber();
-        $('#harga-input').val(rawValue);
+        $('#harga-beli-input').val(hargaBeliInput.getNumber());
+        $('#harga-jual-input').val(hargaJualInput.getNumber());
     });
 
     setTimeout(function() {
@@ -56,7 +60,50 @@ $this->registerJs("
                 </div>
             <?php endif; ?>
 
-            <?php $form = ActiveForm::begin(['id' => 'form-id']); ?>
+            <?php $form = ActiveForm::begin([
+                'id' => 'form-id',
+                'options' => ['enctype' => 'multipart/form-data']
+            ]); ?>
+
+            <?php
+            $initialPreview = [];
+            $initialPreviewConfig = [];
+            if ($model->getGambarUrl()) {
+                $initialPreview[] = $model->getGambarUrl();
+                $filePath = Yii::getAlias('@webroot/images/') . $model->gambar;
+                $initialPreviewConfig[] = [
+                    'caption' => $model->gambar,
+                    'size' => (file_exists($filePath) ? filesize($filePath) : 0),
+                    'showRemove' => false,
+                ];
+            }
+            ?>
+
+            <?= $form->field($model, 'imageFile')->widget(FileInput::class, [
+                'options' => [
+                    'accept' => 'image/jpeg,image/jpg',
+                    'multiple' => false,
+                ],
+                'pluginOptions' => [
+                    'showUpload' => false,
+                    'showRemove' => true,
+                    'showCancel' => false,
+                    'showPreview' => true,
+                    'browseClass' => 'btn btn-primary',
+                    'browseIcon' => '<i class="fas fa-camera mr-1"></i> ',
+                    'browseLabel' => 'Pilih / Ganti Gambar',
+                    'removeClass' => 'btn btn-danger',
+                    'removeIcon' => '<i class="fas fa-trash mr-1"></i> ',
+                    'removeLabel' => 'Reset',
+                    'allowedFileExtensions' => ['jpg', 'jpeg'],
+                    'maxFileSize' => 5120,
+                    'initialPreview' => $initialPreview,
+                    'initialPreviewAsData' => true,
+                    'initialPreviewConfig' => $initialPreviewConfig,
+                    'overwriteInitial' => true,
+                    'msgPlaceholder' => 'Pilih gambar (.jpg / .jpeg) baru jika ingin mengganti...',
+                ],
+            ])->label('Gambar Barang (Format JPG)') ?>
 
             <?= $form->field($model, 'kode_barang')->textInput(['maxlength' => true]) ?>
 
@@ -69,13 +116,48 @@ $this->registerJs("
             ])->label('Deskripsi') ?>
 
 
-            <div class="form-group">
-                <label>Harga (Rupiah)</label>
-                <input type="text" id="harga-input" name="harga" class="form-control" placeholder="Rp 0"
-                    value="<?= $model->harga ?>">
+            <div class="card card-outline card-secondary mb-3">
+                <div class="card-header py-2">
+                    <h5 class="card-title mb-0 font-weight-bold text-secondary"><i class="fas fa-truck mr-1"></i> Data Pembelian & Supplier</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <?= $form->field($model, 'nama_supplier')->textInput([
+                                'maxlength' => true,
+                                'placeholder' => 'Masukkan nama supplier'
+                            ]) ?>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Harga Beli (Supplier)</label>
+                                <input type="text" id="harga-beli-input" name="Barang[harga_beli]" class="form-control" placeholder="Rp 0"
+                                    value="<?= $model->harga_beli ?? 0 ?>">
+                                <small class="form-text text-muted">Harga perolehan barang dari supplier</small>
+                            </div>
+                        </div>
+                    </div>
+                    <?= $form->field($model, 'deskripsi_supplier')->textarea([
+                        'rows' => 3,
+                        'maxlength' => true,
+                        'placeholder' => 'Catatan / kontak / deskripsi supplier (opsional)',
+                    ]) ?>
+                </div>
             </div>
 
-            <?= $form->field($model, 'diskon')->textInput(['type' => 'number', 'min' => 0, 'max' => 100])->label('Diskon (%)') ?>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Harga Jual <span class="text-danger">*</span></label>
+                        <input type="text" id="harga-jual-input" name="Barang[harga_jual]" class="form-control" placeholder="Rp 0"
+                            value="<?= $model->harga_jual ?>">
+                        <small class="form-text text-muted">Harga jual satuan barang ke pelanggan</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <?= $form->field($model, 'diskon')->textInput(['type' => 'number', 'min' => 0, 'max' => 100])->label('Diskon (%)') ?>
+                </div>
+            </div>
 
             <?= $form->field($model, 'kategori_id')->dropDownList(
                 ArrayHelper::map(Kategori::find()->all(), 'id', 'nama_kategori'),

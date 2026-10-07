@@ -24,6 +24,50 @@
                 </li>
 
                 <li class="nav-item">
+                    <a href="<?= \yii\helpers\Url::to(['/kasir/index']) ?>" class="nav-link">
+                        <i class="nav-icon fas fa-cash-register"></i>
+                        <p>Kasir</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="<?= \yii\helpers\Url::to(['/transaksi/index']) ?>" class="nav-link">
+                        <i class="nav-icon fas fa-receipt"></i>
+                        <p>
+                            Transaksi
+                            <?php
+                            $draftTrxCount = (int) \app\models\Transaksi::find()->where(['status' => \app\models\Transaksi::STATUS_DRAFT])->count();
+                            if ($draftTrxCount > 0):
+                            ?>
+                                <span class="badge badge-warning right"><?= $draftTrxCount ?> Draft</span>
+                            <?php endif; ?>
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="<?= \yii\helpers\Url::to(['/log-barang/index']) ?>" class="nav-link">
+                        <i class="nav-icon fas fa-history"></i>
+                        <p>Log Barang</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="<?= \yii\helpers\Url::to(['/barang/notifikasi']) ?>" class="nav-link">
+                        <i class="nav-icon fas fa-bell"></i>
+                        <p>
+                            Notifikasi
+                            <?php
+                            $stokMenipisCount = (int) \app\models\Barang::find()->where(['<', 'stok', 5])->count();
+                            if ($stokMenipisCount > 0):
+                            ?>
+                                <span class="badge badge-danger right"><?= $stokMenipisCount ?></span>
+                            <?php endif; ?>
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
                     <a href="<?= \yii\helpers\Url::to(['/menu/index']) ?>" class="nav-link">
                         <i class="nav-icon fas fa-utensils"></i>
                         <p>Master Menu</p>

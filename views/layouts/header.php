@@ -26,6 +26,62 @@ use yii\helpers\Url;
         </li>
     </ul>
     <ul class="navbar-nav ml-auto" style="padding-left: 15px; padding-right: 15px; border-left: 1px solid #dee2e6;">
+        <!-- Widget Notifikasi -->
+        <?php
+        $totalStokMenipis = (int) \app\models\Barang::find()->where(['<', 'stok', 5])->count();
+        $top3StokMenipis = \app\models\Barang::find()
+            ->where(['<', 'stok', 5])
+            ->orderBy(['stok' => SORT_ASC, 'id' => SORT_DESC])
+            ->limit(3)
+            ->all();
+        ?>
+        <li class="nav-item dropdown mr-2">
+            <a class="nav-link position-relative" data-toggle="dropdown" href="#" title="Notifikasi">
+                <i class="far fa-bell fa-lg"></i>
+                <?php if ($totalStokMenipis > 0): ?>
+                    <span class="badge badge-danger navbar-badge font-weight-bold" style="font-size: 0.65rem; top: 3px; right: 2px;">
+                        <?= $totalStokMenipis ?>
+                    </span>
+                <?php endif; ?>
+            </a>
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right shadow" style="min-width: 320px;">
+                <span class="dropdown-header font-weight-bold <?= $totalStokMenipis > 0 ? 'text-danger' : 'text-muted' ?>">
+                    <i class="fas fa-bell mr-1"></i>
+                    <?= $totalStokMenipis > 0 ? "Notifikasi: {$totalStokMenipis} Barang" : "Tidak Ada Notifikasi" ?>
+                </span>
+                <div class="dropdown-divider"></div>
+                <?php if (!empty($top3StokMenipis)): ?>
+                    <?php foreach ($top3StokMenipis as $item): ?>
+                        <a href="<?= Url::to(['/barang/detail', 'id' => $item->id]) ?>" class="dropdown-item py-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="text-truncate mr-2" style="max-width: 190px;">
+                                    <strong class="d-block text-dark text-truncate"><?= Html::encode($item->nama_barang) ?></strong>
+                                    <small class="text-muted"><?= Html::encode($item->kode_barang) ?> &bull; <?= Html::encode($item->kategori->nama_kategori ?? '-') ?></small>
+                                </div>
+                                <div class="text-right">
+                                    <?php if ($item->stok <= 0): ?>
+                                        <span class="badge badge-danger px-2 py-1 font-weight-bold">Habis (0)</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning text-dark px-2 py-1 font-weight-bold">Sisa <?= $item->stok ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="dropdown-item text-center text-muted py-3">
+                        <i class="fas fa-check-circle text-success mb-2 fa-2x d-block"></i>
+                        Semua stok barang aman (&ge; 5)
+                    </div>
+                    <div class="dropdown-divider"></div>
+                <?php endif; ?>
+                <a href="<?= Url::to(['/barang/notifikasi']) ?>" class="dropdown-item dropdown-footer text-center font-weight-bold text-primary py-2">
+                    <i class="fas fa-bell mr-1"></i> Lihat Semua Notifikasi (<?= $totalStokMenipis ?>)
+                </a>
+            </div>
+        </li>
+
         <!-- User Dropdown Menu -->
         <li class="nav-item dropdown">
             <a class="nav-link d-flex align-items-center" data-toggle="dropdown" href="#">

@@ -18,15 +18,15 @@ $this->title = 'Howdy!';
         <div class="row">
             <?php
             $fitur = [
-                ['label' => 'Master Barang', 'icon' => 'fa-box', 'color' => 'info', 'url' => 'barang/index'],
-                ['label' => 'Master Menu', 'icon' => 'fa-utensils', 'color' => 'secondary', 'url' => 'menu/index'],
-                ['label' => 'Satuan Barang', 'icon' => 'fa-list-ol', 'color' => 'warning', 'url' => 'satuan-barang/index'],
-                ['label' => 'Kategori Barang', 'icon' => 'fa-layer-group', 'color' => 'danger', 'url' => 'kategori/index'],
-                ['label' => 'Faktur', 'icon' => 'fa-file-invoice', 'color' => 'success', 'url' => 'faktur/index'],
-                ['label' => 'Pesanan', 'icon' => 'fa-concierge-bell', 'color' => 'light', 'url' => 'pesanan/index'],
-                ['label' => 'Kop Surat', 'icon' => 'fa-file-signature', 'color' => 'primary', 'url' => 'kop/index'],
-                // ['label' => 'Pengaturan', 'icon' => 'fa-cog', 'color' => 'teal', 'url' => '#'],
-                // ['label' => 'Bantuan', 'icon' => 'fa-question-circle', 'color' => 'orange', 'url' => '#'],
+                ['label' => 'Master Barang', 'icon' => 'fa-box', 'color' => 'info', 'url' => ['/barang/index']],
+                ['label' => 'Master Menu', 'icon' => 'fa-utensils', 'color' => 'secondary', 'url' => ['/menu/index']],
+                ['label' => 'Satuan Barang', 'icon' => 'fa-list-ol', 'color' => 'warning', 'url' => ['/satuan-barang/index']],
+                ['label' => 'Kategori Barang', 'icon' => 'fa-layer-group', 'color' => 'danger', 'url' => ['/kategori/index']],
+                ['label' => 'Faktur', 'icon' => 'fa-file-invoice', 'color' => 'success', 'url' => ['/faktur/index']],
+                ['label' => 'Pesanan', 'icon' => 'fa-concierge-bell', 'color' => 'light', 'url' => ['/pesanan/index']],
+                ['label' => 'Kop Surat', 'icon' => 'fa-file-signature', 'color' => 'primary', 'url' => ['/kop/index']],
+                // ['label' => 'Pengaturan', 'icon' => 'fa-cog', 'color' => 'teal', 'url' => ['/site/index']],
+                // ['label' => 'Bantuan', 'icon' => 'fa-question-circle', 'color' => 'orange', 'url' => ['/site/index']],
             ];
 
             foreach ($fitur as $item) {
