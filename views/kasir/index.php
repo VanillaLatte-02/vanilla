@@ -5,6 +5,7 @@ use yii\helpers\Url;
 
 /* @var $this yii\web\View */
 /* @var $barang app\models\Barang[] */
+/* @var $dataProvider yii\data\ActiveDataProvider */
 /* @var $keyword string|null */
 /* @var $kategori_id int|null */
 /* @var $activeKategori app\models\Kategori[] */
@@ -58,27 +59,131 @@ $this->registerJs("
         background-color: #cbd5e1;
         border-radius: 4px;
     }
-    /* Floating Action Button (FAB) Kanan Tengah */
-    #btnToggleDraftFab {
+    /* Stepper Qty Draft Kasir */
+    .pos-qty-stepper {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        background-color: #ffffff;
+        overflow: hidden;
+        height: 28px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    .pos-qty-stepper .btn-step {
+        border: none;
+        background-color: #f8f9fa;
+        color: #495057;
+        width: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition: background-color 0.15s ease, color 0.15s ease;
+        outline: none;
+    }
+    .pos-qty-stepper .btn-step:hover {
+        background-color: #e2e8f0;
+        color: #007bff;
+    }
+    .pos-qty-stepper .btn-step:active {
+        background-color: #cbd5e1;
+    }
+    .pos-qty-stepper .qty-val {
+        min-width: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #212529;
+        padding: 0 4px;
+        user-select: none;
+        border-left: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+        background-color: #ffffff;
+    }
+
+    /* Floating Action Buttons (FAB) Kanan Tengah Container */
+    .fab-kasir-container {
         position: fixed;
         right: 0;
         top: 50%;
         transform: translateY(-50%);
         z-index: 1045;
-        border-radius: 30px 0 0 30px;
-        box-shadow: -4px 6px 18px rgba(0, 0, 0, 0.28);
-        padding: 12px 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+        pointer-events: none;
+    }
+    .fab-btn-pill {
+        pointer-events: auto;
+        position: relative;
+        right: 0;
+        border-radius: 30px 0 0 30px !important;
+        box-shadow: -4px 6px 18px rgba(0, 0, 0, 0.28) !important;
+        padding: 10px 16px !important;
         font-weight: bold;
         cursor: pointer;
-        transition: right 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
-        border-right: none;
+        transition: right 0.2s ease, transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+        border-right: none !important;
     }
-    #btnToggleDraftFab:hover {
+    .fab-btn-pill:hover {
         right: 4px;
-        box-shadow: -6px 8px 24px rgba(0, 0, 0, 0.35);
+        box-shadow: -6px 8px 24px rgba(0, 0, 0, 0.35) !important;
     }
-    #btnToggleDraftFab:active {
-        transform: translateY(-50%) scale(0.97);
+    .fab-btn-pill:active {
+        transform: scale(0.97);
+    }
+    #btnClearDraftFab {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: #ffffff;
+    }
+    #btnClearDraftFab:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+    #btnClearDraftFab.is-empty {
+        opacity: 0.55;
+    }
+    /* Numpad Touch Modal Pembayaran */
+    .pos-numpad-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    .pos-numpad-grid .btn-numpad {
+        padding: 10px 4px;
+        font-size: 1.1rem;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        transition: transform 0.08s ease, background-color 0.1s ease;
+    }
+    .pos-numpad-grid .btn-numpad:active {
+        transform: scale(0.95);
+    }
+    /* Modal Zoom / Preview QRIS & Transfer di Atas Modal Pembayaran */
+    #modalPembayaranKasir {
+        z-index: 1050 !important;
+    }
+    #modalImagePreviewPayment {
+        z-index: 1070 !important;
+        background: rgba(0, 0, 0, 0.72) !important;
+        overflow-y: auto !important;
+    }
+    #modalImagePreviewPayment .modal-dialog {
+        z-index: 1071 !important;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+    #previewModalImage {
+        max-height: 55vh;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
     }
 </style>
 
@@ -134,7 +239,7 @@ $this->registerJs("
                         </div>
                         <div class="col-md-4 text-md-right text-center">
                             <span class="badge badge-light border text-dark p-2 font-weight-bold">
-                                <i class="fas fa-boxes text-primary mr-1"></i> <?= count($barang) ?> Produk Tampil
+                                <i class="fas fa-boxes text-primary mr-1"></i> <?= $dataProvider->getTotalCount() ?> Produk
                             </span>
                         </div>
                     </div>
@@ -236,7 +341,7 @@ $this->registerJs("
                                 ]) ?>
                             </span>
                         <?php endif; ?>
-                        <span class="badge badge-light border text-dark font-weight-bold ml-1"><?= count($barang) ?> barang ditemukan</span>
+                        <span class="badge badge-light border text-dark font-weight-bold ml-1"><?= $dataProvider->getTotalCount() ?> barang ditemukan</span>
                     </div>
                     <div>
                         <?= Html::a('<i class="fas fa-undo mr-1"></i> Reset Filter', ['kasir/index'], [
@@ -336,6 +441,33 @@ $this->registerJs("
                 <?php endif; ?>
             </div>
 
+            <!-- Pagination Bar Katalog Kasir -->
+            <?php if ($dataProvider->getTotalCount() > 0): ?>
+                <div class="card shadow-sm border-0 mb-4 bg-white">
+                    <div class="card-body py-2 px-3 d-flex flex-wrap justify-content-between align-items-center">
+                        <div class="text-muted small mb-2 mb-md-0">
+                            Menampilkan <strong><?= $dataProvider->getCount() ?></strong> dari <strong><?= $dataProvider->getTotalCount() ?></strong> produk
+                            <?php if ($dataProvider->pagination->getPageCount() > 1): ?>
+                                (Halaman <strong><?= $dataProvider->pagination->getPage() + 1 ?></strong> dari <strong><?= $dataProvider->pagination->getPageCount() ?></strong>)
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($dataProvider->pagination->getPageCount() > 1): ?>
+                            <div>
+                                <?= \yii\widgets\LinkPager::widget([
+                                    'pagination' => $dataProvider->pagination,
+                                    'options' => ['class' => 'pagination pagination-sm m-0'],
+                                    'linkContainerOptions' => ['class' => 'page-item'],
+                                    'linkOptions' => ['class' => 'page-link'],
+                                    'disabledListItemSubTagOptions' => ['tag' => 'a', 'class' => 'page-link'],
+                                    'prevPageLabel' => '&laquo; Sebelumnya',
+                                    'nextPageLabel' => 'Berikutnya &raquo;',
+                                ]) ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
         </div>
 
         <!-- Kolom Kanan: Sidebar Draft Kasir (Sticky Panel) -->
@@ -360,6 +492,14 @@ $this->registerJs("
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Banner Melanjutkan Draft Transaksi -->
+                    <div id="loadedDraftBanner" class="p-2 border-bottom small font-weight-bold d-none align-items-center justify-content-between" style="background: #fff3cd !important; border-color: #ffeeba !important;">
+                        <span><i class="fas fa-edit text-primary mr-1"></i> Melanjutkan Draft: <strong id="loadedDraftNomorText" class="text-primary"></strong></span>
+                        <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 ml-1 font-weight-bold" id="btnCancelLoadedDraft" title="Lepas tautan draft ini (mulai transaksi baru)">
+                            <i class="fas fa-times mr-1"></i> Lepas
+                        </button>
                     </div>
 
                     <!-- Meta Transaksi & Pelanggan -->
@@ -407,25 +547,9 @@ $this->registerJs("
                             <h4 class="font-weight-bold text-success mb-0" id="draftTotalText">Rp 0</h4>
                         </div>
 
-                        <!-- Pilihan Metode Pembayaran Cepat -->
-                        <div class="mb-3">
-                            <small class="text-muted d-block font-weight-bold mb-1">Metode Pembayaran:</small>
-                            <div class="btn-group btn-group-toggle btn-group-sm w-100" data-toggle="buttons">
-                                <label class="btn btn-outline-secondary active">
-                                    <input type="radio" name="payment_method" value="tunai" checked> <i class="fas fa-money-bill-wave mr-1"></i> Tunai
-                                </label>
-                                <label class="btn btn-outline-secondary">
-                                    <input type="radio" name="payment_method" value="qris"> <i class="fas fa-qrcode mr-1"></i> QRIS
-                                </label>
-                                <label class="btn btn-outline-secondary">
-                                    <input type="radio" name="payment_method" value="transfer"> <i class="fas fa-university mr-1"></i> Transfer
-                                </label>
-                            </div>
-                        </div>
-
                         <!-- Tombol Aksi Kasir -->
                         <button type="button" class="btn btn-success btn-block btn-lg font-weight-bold shadow-sm mb-2" id="btnProcessPayment" disabled>
-                            <i class="fas fa-check-circle mr-1"></i> Proses Pembayaran
+                            <i class="fas fa-cash-register mr-1"></i> Lakukan Pembayaran
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-block btn-sm" id="btnSaveDraftOnly" disabled>
                             <i class="fas fa-save mr-1"></i> Simpan Sebagai Draft
@@ -437,12 +561,21 @@ $this->registerJs("
         </div>
     </div>
 
-    <!-- Floating Action Button (FAB) Kanan Tengah untuk Buka/Tutup Draft Kasir -->
-    <button type="button" id="btnToggleDraftFab" class="btn btn-primary shadow-lg d-flex align-items-center" title="Buka / Tutup Draft Kasir">
-        <i class="fas fa-shopping-cart fa-lg mr-2"></i>
-        <span class="badge badge-warning text-dark font-weight-bold px-2 py-1 mr-2" id="fabDraftBadge" style="font-size: 0.85rem;">0</span>
-        <i class="fas fa-chevron-right fab-arrow-icon" id="fabToggleIcon"></i>
-    </button>
+    <!-- Floating Action Buttons (FAB) Kanan Tengah -->
+    <div class="fab-kasir-container">
+        <!-- FAB 1: Buka / Tutup Draft Kasir -->
+        <button type="button" id="btnToggleDraftFab" class="btn btn-primary shadow-lg d-flex align-items-center fab-btn-pill" title="Buka / Tutup Draft Kasir">
+            <i class="fas fa-shopping-cart fa-lg mr-2"></i>
+            <span class="badge badge-warning text-dark font-weight-bold px-2 py-1 mr-2" id="fabDraftBadge" style="font-size: 0.85rem;">0</span>
+            <i class="fas fa-chevron-right fab-arrow-icon" id="fabToggleIcon"></i>
+        </button>
+
+        <!-- FAB 2: Clear Draft Kasir (Tepat di bawah Buka/Tutup) -->
+        <button type="button" id="btnClearDraftFab" class="btn btn-danger shadow-lg d-flex align-items-center fab-btn-pill is-empty" title="Kosongkan Draft Kasir">
+            <i class="fas fa-trash-alt mr-2"></i>
+            <span class="font-weight-bold" style="font-size: 0.85rem;"></span>
+        </button>
+    </div>
 
     <!-- Modal Semua Kategori & Searching -->
     <div class="modal fade" id="modalSemuaKategori" tabindex="-1" role="dialog" aria-labelledby="modalSemuaKategoriLabel" aria-hidden="true">
@@ -543,14 +676,338 @@ $this->registerJs("
         </div>
     </div>
 
+    <!-- Modal Pembayaran Kasir (Summary, Detail, & Multi-Payment) -->
+    <div class="modal fade" id="modalPembayaranKasir" tabindex="-1" role="dialog" aria-labelledby="modalPembayaranKasirLabel" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+            <div class="modal-content shadow-lg border-0">
+                <!-- Header Modal -->
+                <div class="modal-header bg-dark text-white py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-warning p-2 mr-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="fas fa-cash-register text-dark fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title font-weight-bold mb-0" id="modalPembayaranKasirLabel">
+                                Pembayaran Kasir
+                            </h5>
+                            <small class="text-light" style="opacity: 0.85;">Konfirmasi rincian pesanan dan selesaikan transaksi</small>
+                        </div>
+                    </div>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <!-- Body Modal: 2 Kolom (Kiri: Summary & Detail, Kanan: Metode Bayar) -->
+                <div class="modal-body p-3 p-md-4">
+                    <div class="row">
+                        <!-- Kolom Kiri: Summary Transaksi & Detail Belanja -->
+                        <div class="col-lg-5 col-md-12 border-right pr-lg-4 mb-3 mb-lg-0">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                <h6 class="font-weight-bold text-dark mb-0">
+                                    <i class="fas fa-receipt text-primary mr-1"></i> Rincian Pesanan
+                                </h6>
+                                <span class="badge badge-light border text-dark font-weight-bold" id="payModalBadgeItemCount">
+                                    0 Item
+                                </span>
+                            </div>
+
+                            <!-- Info Kasir, Pelanggan, Waktu -->
+                            <div class="bg-light rounded p-2 mb-3 border small">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-muted"><i class="fas fa-user-tie mr-1"></i> Kasir:</span>
+                                    <strong class="text-dark"><?= Yii::$app->user->isGuest ? 'Kasir 1' : Yii::$app->user->identity->username ?></strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-muted"><i class="fas fa-user mr-1"></i> Pelanggan:</span>
+                                    <strong class="text-primary" id="payModalCustomerName">Umum</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted"><i class="fas fa-clock mr-1"></i> Waktu:</span>
+                                    <span class="text-dark"><?= date('d/m/Y H:i') ?></span>
+                                </div>
+                            </div>
+
+                            <!-- Daftar Item Belanja (Scrollable) -->
+                            <label class="font-weight-bold small text-muted mb-1">Daftar Barang Belanja:</label>
+                            <div class="border rounded bg-white p-0 mb-3" style="max-height: 230px; overflow-y: auto;">
+                                <table class="table table-sm table-striped mb-0 small">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Barang</th>
+                                            <th class="text-center" style="width: 50px;">Qty</th>
+                                            <th class="text-right" style="width: 85px;">Harga</th>
+                                            <th class="text-right" style="width: 95px;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="payModalItemTableBody">
+                                        <!-- Dynamically injected rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Ringkasan Total Tagihan -->
+                            <div class="card border-0 bg-light p-3">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>Subtotal:</span>
+                                    <strong class="text-dark" id="payModalSubtotalText">Rp 0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small mb-2">
+                                    <span>Diskon:</span>
+                                    <strong class="text-success">Rp 0</strong>
+                                </div>
+                                <hr class="my-1">
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="font-weight-bold text-dark" style="font-size: 1.1rem;">Total Tagihan:</span>
+                                    <h3 class="font-weight-bold text-success mb-0" id="payModalGrandTotalText">Rp 0</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kolom Kanan: Pilihan Metode Pembayaran & Konten -->
+                        <div class="col-lg-7 col-md-12 pl-lg-4">
+                            <h6 class="font-weight-bold text-dark mb-2 pb-2 border-bottom">
+                                <i class="fas fa-wallet text-primary mr-1"></i> Pilih Metode Pembayaran
+                            </h6>
+
+                            <!-- Tabs / Selector Pilihan Metode Pembayaran -->
+                            <div class="btn-group btn-group-toggle w-100 mb-3 shadow-sm" data-toggle="buttons" id="payMethodGroup">
+                                <label class="btn btn-outline-primary active py-2 font-weight-bold" id="btnTabCash" style="border-width: 2px;">
+                                    <input type="radio" name="modal_payment_method" value="TUNAI" checked>
+                                    <i class="fas fa-money-bill-wave fa-lg d-block mb-1"></i> Tunai (Cash)
+                                </label>
+                                <label class="btn btn-outline-primary py-2 font-weight-bold" id="btnTabQris" style="border-width: 2px;">
+                                    <input type="radio" name="modal_payment_method" value="QRIS">
+                                    <i class="fas fa-qrcode fa-lg d-block mb-1"></i> QRIS
+                                </label>
+                                <label class="btn btn-outline-primary py-2 font-weight-bold" id="btnTabTransfer" style="border-width: 2px;">
+                                    <input type="radio" name="modal_payment_method" value="TRANSFER">
+                                    <i class="fas fa-university fa-lg d-block mb-1"></i> Transfer Bank
+                                </label>
+                            </div>
+
+                            <!-- Panel 1: Pembayaran TUNAI / CASH -->
+                            <div id="panelPayCash">
+                                <div class="card border mb-3 shadow-sm">
+                                    <div class="card-body p-3">
+                                        <!-- Input Uang Diterima -->
+                                        <div class="form-group mb-2">
+                                            <label class="font-weight-bold text-dark small mb-1">
+                                                <i class="fas fa-hand-holding-usd text-success mr-1"></i> Nominal Uang Diterima:
+                                            </label>
+                                            <div class="input-group input-group-lg">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text bg-white font-weight-bold text-dark">Rp</span>
+                                                </div>
+                                                <input type="text" id="payCashInput" class="form-control form-control-lg font-weight-bold text-right text-dark" placeholder="0" autocomplete="off" style="font-size: 1.5rem; letter-spacing: 0.5px;">
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-secondary" id="btnPayCashReset" title="Hapus Nominal">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Box Display Uang Kembali / Kekurangan -->
+                                        <div id="payCashChangeBox" class="p-2 rounded mb-3 d-flex justify-content-between align-items-center" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
+                                            <div>
+                                                <small class="text-muted d-block font-weight-bold" id="payCashChangeTitle">UANG KEMBALIAN</small>
+                                                <span id="payCashChangeBadge" class="badge badge-success px-2 py-1 font-weight-bold">Lunas</span>
+                                            </div>
+                                            <h3 class="font-weight-bold text-success mb-0" id="payCashChangeValue">Rp 0</h3>
+                                        </div>
+
+                                        <!-- Quick Cash Buttons (Pecahan Rupiah & Uang Pas) -->
+                                        <div class="mb-2">
+                                            <small class="text-muted font-weight-bold d-block mb-1">Nominal Cepat:</small>
+                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                <button type="button" class="btn btn-sm btn-outline-primary btn-quick-cash font-weight-bold px-2" data-action="exact">
+                                                    <i class="fas fa-check-circle mr-1"></i> Uang Pas
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="10000">10.000</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="20000">20.000</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="50000">50.000</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="100000">100.000</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="200000">200.000</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Keyboard Custom / Numpad Touch Kasir -->
+                                        <div class="mt-2">
+                                            <small class="text-muted font-weight-bold d-block mb-1">Keyboard Numpad:</small>
+                                            <div class="pos-numpad-grid">
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="7">7</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="8">8</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="9">9</button>
+                                                <button type="button" class="btn btn-warning btn-numpad font-weight-bold text-dark border" data-action="add" data-amount="10000">+10k</button>
+
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="4">4</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="5">5</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="6">6</button>
+                                                <button type="button" class="btn btn-warning btn-numpad font-weight-bold text-dark border" data-action="add" data-amount="20000">+20k</button>
+
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="1">1</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="2">2</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="3">3</button>
+                                                <button type="button" class="btn btn-warning btn-numpad font-weight-bold text-dark border" data-action="add" data-amount="50000">+50k</button>
+
+                                                <button type="button" class="btn btn-danger btn-numpad font-weight-bold text-white border" data-action="clear" title="Clear / Reset">C</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="0">0</button>
+                                                <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="000">000</button>
+                                                <button type="button" class="btn btn-secondary btn-numpad font-weight-bold text-white border" data-action="backspace" title="Hapus satu angka">
+                                                    <i class="fas fa-backspace"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel 2: Pembayaran QRIS -->
+                            <div id="panelPayQris" style="display: none;">
+                                <div class="card border mb-3 shadow-sm text-center">
+                                    <div class="card-body p-3">
+                                        <div class="mb-2">
+                                            <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 0.85rem;">
+                                                <i class="fas fa-qrcode mr-1"></i> Scan QRIS
+                                            </span>
+                                        </div>
+                                        <div class="p-2 bg-white rounded border d-inline-block shadow-sm mb-2 btn-show-large-preview" data-type="qris" style="max-width: 280px; cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
+                                            <?= Html::img(Url::to('@web/images/local/qris.jpg'), [
+                                                'class' => 'img-fluid rounded',
+                                                'style' => 'max-height: 250px; width: auto; object-fit: contain;',
+                                                'alt' => 'Gambar QRIS Kasir'
+                                            ]) ?>
+                                            <div class="small text-primary font-weight-bold mt-1">
+                                                <i class="fas fa-search-plus mr-1"></i> Klik untuk Perbesar
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-light border py-2 px-3 mx-auto mb-2" style="max-width: 420px;">
+                                            <small class="text-muted d-block">Total yang harus dibayar:</small>
+                                            <h4 class="font-weight-bold text-primary mb-1" id="payQrisAmountText">Rp 0</h4>
+                                            <small class="text-muted"><i class="fas fa-mobile-alt mr-1"></i> Buka GoPay, OVO, Dana, ShopeePay, BCA, atau m-Banking dan scan kode QR di atas.</small>
+                                        </div>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold btn-show-large-preview" data-type="qris">
+                                                <i class="fas fa-expand-alt mr-1"></i> Buka Tampilan Layar Penuh (Zoom QRIS)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel 3: Pembayaran TRANSFER BANK -->
+                            <div id="panelPayTransfer" style="display: none;">
+                                <div class="card border mb-3 shadow-sm text-center">
+                                    <div class="card-body p-3">
+                                        <div class="mb-2">
+                                            <span class="badge badge-info px-3 py-1 font-weight-bold text-white" style="font-size: 0.85rem;">
+                                                <i class="fas fa-university mr-1"></i> Transfer Rekening Bank
+                                            </span>
+                                        </div>
+                                        <div class="p-2 bg-white rounded border d-inline-block shadow-sm mb-2 btn-show-large-preview" data-type="transfer" style="max-width: 320px; cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
+                                            <?= Html::img(Url::to('@web/images/local/transfer.jpg'), [
+                                                'class' => 'img-fluid rounded',
+                                                'style' => 'max-height: 250px; width: auto; object-fit: contain;',
+                                                'alt' => 'Gambar Rekening Transfer'
+                                            ]) ?>
+                                            <div class="small text-info font-weight-bold mt-1">
+                                                <i class="fas fa-search-plus mr-1"></i> Klik untuk Perbesar
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-light border py-2 px-3 mx-auto mb-2" style="max-width: 420px;">
+                                            <small class="text-muted d-block">Nominal Transfer:</small>
+                                            <h4 class="font-weight-bold text-info mb-1" id="payTransferAmountText">Rp 0</h4>
+                                            <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> Transfer tepat sesuai nominal tagihan dan pastikan bukti transfer telah terverifikasi.</small>
+                                        </div>
+                                        <div>
+                                            <button type="button" class="btn btn-sm btn-outline-info font-weight-bold btn-show-large-preview" data-type="transfer">
+                                                <i class="fas fa-expand-alt mr-1"></i> Buka Tampilan Layar Penuh (Zoom Rekening)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Modal -->
+                <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">
+                        <i class="fas fa-arrow-left mr-1"></i> Batal / Kembali ke Draft
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-success btn-lg font-weight-bold shadow px-4" id="btnFinishPaymentSubmit">
+                            <i class="fas fa-check-circle mr-1"></i> Selesaikan Pembayaran
+                        </button>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <!-- Modal Preview Gambar QRIS & Transfer di Atas Modal Pembayaran -->
+    <div class="modal fade" id="modalImagePreviewPayment" role="dialog" aria-labelledby="modalImagePreviewPaymentLabel" aria-hidden="true" data-backdrop="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                <!-- Header -->
+                <div class="modal-header bg-dark text-white py-3">
+                    <div class="d-flex align-items-center">
+                        <span id="previewModalIcon" class="mr-2 fa-lg">
+                            <i class="fas fa-qrcode text-warning"></i>
+                        </span>
+                        <div>
+                            <h5 class="modal-title font-weight-bold mb-0" id="modalImagePreviewPaymentLabel">
+                                Preview Pembayaran
+                            </h5>
+                            <small class="text-light" style="opacity: 0.85;" id="previewModalSubtitle">Scan atau Transfer sesuai nominal tagihan</small>
+                        </div>
+                    </div>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <!-- Body: Gambar Jelas & Besar -->
+                <div class="modal-body p-3 p-md-4 text-center bg-white">
+                    <!-- Banner Total Tagihan -->
+                    <div class="alert alert-light border shadow-sm py-2 px-3 mx-auto mb-3" style="max-width: 480px;">
+                        <small class="text-muted d-block font-weight-bold" style="letter-spacing: 0.5px;">TOTAL PEMBAYARAN:</small>
+                        <h2 class="font-weight-bold text-success mb-1" id="previewModalTotalAmount">Rp 0</h2>
+                        <small class="text-muted" id="previewModalInstructionText">Arahkan kamera smartphone ke kode QR di bawah untuk menyelesaikan pembayaran.</small>
+                    </div>
+
+                    <!-- Container Gambar Besar -->
+                    <div class="p-2 p-md-3 bg-light rounded border d-inline-block shadow-sm mb-2" style="max-width: 100%;">
+                        <img id="previewModalImage" src="" alt="Gambar Pembayaran" class="img-fluid rounded" style="max-height: 55vh; width: auto; object-fit: contain;">
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">
+                        <i class="fas fa-arrow-left mr-1"></i> Kembali ke Kasir
+                    </button>
+                    <button type="button" class="btn btn-success btn-lg font-weight-bold shadow-sm px-4" id="btnPreviewConfirmFinish">
+                        <i class="fas fa-check-circle mr-1"></i> Selesaikan Pembayaran
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <?php
 $simpanTransaksiUrl = Url::to(['kasir/simpan-transaksi']);
 $transaksiIndexUrl = Url::to(['transaksi/index']);
 $transaksiDraftUrl = Url::to(['transaksi/index', 'status' => 'DRAFT']);
+$qrisImageUrl = Url::to('@web/images/local/qris.jpg');
+$transferImageUrl = Url::to('@web/images/local/transfer.jpg');
 $csrfParam = Yii::$app->request->csrfParam;
 $csrfToken = Yii::$app->request->csrfToken;
+$serverDraftJson = json_encode($loadedDraft ?? null);
 
 $js = <<<JS
     // Format angka ke format Rupiah
@@ -558,9 +1015,97 @@ $js = <<<JS
         return 'Rp ' + Number(amount).toLocaleString('id-ID');
     }
 
+    // Key localStorage untuk draft kasir
+    var DRAFT_STORAGE_KEY = 'pos_kasir_draft_v1';
+
     // State draft kasir (keranjang lokal)
     var draftItems = {};
     var isDraftOpen = true;
+    var activeDraftId = null;
+    var activeDraftNomor = '';
+
+    function updateDraftBanner() {
+        if (activeDraftId && activeDraftNomor) {
+            $('#loadedDraftBanner').removeClass('d-none').addClass('d-flex');
+            $('#loadedDraftNomorText').text(activeDraftNomor);
+        } else {
+            $('#loadedDraftBanner').removeClass('d-flex').addClass('d-none');
+            $('#loadedDraftNomorText').text('');
+        }
+    }
+
+    $(document).on('click', '#btnCancelLoadedDraft', function () {
+        activeDraftId = null;
+        activeDraftNomor = '';
+        updateDraftBanner();
+        saveDraftToStorage();
+        Swal.fire({
+            icon: 'info',
+            title: 'Tautan Draft Dilepas',
+            text: 'Transaksi ini tidak lagi menimpa draft sebelumnya dan akan diproses sebagai transaksi baru.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+
+    // Simpan data draft ke localStorage
+    function saveDraftToStorage() {
+        try {
+            var data = {
+                items: draftItems,
+                customer_name: $('#draftCustomerName').val() || '',
+                payment_method: currentPaymentMethod || 'TUNAI',
+                isDraftOpen: isDraftOpen,
+                draft_id: activeDraftId,
+                draft_nomor: activeDraftNomor
+            };
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.warn('Gagal menyimpan draft ke localStorage:', e);
+        }
+    }
+
+    // Muat data draft dari localStorage
+    function loadDraftFromStorage() {
+        try {
+            var stored = localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (stored) {
+                var data = JSON.parse(stored);
+                if (data && typeof data === 'object') {
+                    if (data.items && typeof data.items === 'object') {
+                        draftItems = data.items;
+                    }
+                    if (data.customer_name) {
+                        $('#draftCustomerName').val(data.customer_name);
+                    }
+                    if (data.payment_method) {
+                        currentPaymentMethod = String(data.payment_method).toUpperCase();
+                    }
+                    if (typeof data.isDraftOpen === 'boolean') {
+                        isDraftOpen = data.isDraftOpen;
+                    }
+                    if (data.draft_id) {
+                        activeDraftId = data.draft_id;
+                        activeDraftNomor = data.draft_nomor || '';
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Gagal memuat draft dari localStorage:', e);
+        }
+    }
+
+    // Bersihkan draft dari localStorage
+    function clearDraftStorage() {
+        activeDraftId = null;
+        activeDraftNomor = '';
+        updateDraftBanner();
+        try {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch (e) {
+            console.warn('Gagal menghapus draft dari localStorage:', e);
+        }
+    }
 
     // Toggle tampilan sidebar draft kasir
     function toggleDraft(show) {
@@ -581,6 +1126,9 @@ $js = <<<JS
             $('#fabToggleIcon').removeClass('fa-chevron-right').addClass('fa-chevron-left');
             $('#btnToggleDraftFab').attr('title', 'Buka Draft Kasir');
         }
+        if (Object.keys(draftItems).length > 0) {
+            saveDraftToStorage();
+        }
     }
 
     // Event listener FAB dan tombol close draft
@@ -590,6 +1138,20 @@ $js = <<<JS
 
     $('#btnCloseDraftHeader').on('click', function () {
         toggleDraft(false);
+    });
+
+    // Simpan otomatis saat user mengetik nama pelanggan
+    $(document).on('input', '#draftCustomerName', function () {
+        if (Object.keys(draftItems).length > 0) {
+            saveDraftToStorage();
+        }
+    });
+
+    // Simpan sebelum halaman berpindah/reload (misal klik kategori, search, atau pagination)
+    $(window).on('beforeunload', function () {
+        if (Object.keys(draftItems).length > 0) {
+            saveDraftToStorage();
+        }
     });
 
     function renderDraft() {
@@ -602,10 +1164,12 @@ $js = <<<JS
             $('#draftItemList').addClass('d-none').empty();
             $('#draftItemCountBadge').text('0 Item');
             $('#fabDraftBadge').text('0');
+            $('#btnClearDraftFab').addClass('is-empty').attr('title', 'Draft kasir kosong');
             $('#draftSubtotalText').text('Rp 0');
             $('#draftTotalText').text('Rp 0');
             $('#btnProcessPayment').prop('disabled', true);
             $('#btnSaveDraftOnly').prop('disabled', true);
+            clearDraftStorage();
             return;
         }
 
@@ -629,10 +1193,14 @@ $js = <<<JS
                     '</button>' +
                 '</div>' +
                 '<div class="d-flex justify-content-between align-items-center">' +
-                    '<div class="btn-group btn-group-sm">' +
-                        '<button type="button" class="btn btn-outline-secondary py-0 px-2 btn-qty-minus" data-id="' + id + '">-</button>' +
-                        '<span class="btn btn-light py-0 px-2 font-weight-bold" style="min-width: 32px;">' + item.qty + '</span>' +
-                        '<button type="button" class="btn btn-outline-secondary py-0 px-2 btn-qty-plus" data-id="' + id + '">+</button>' +
+                    '<div class="pos-qty-stepper">' +
+                        '<button type="button" class="btn-step btn-qty-minus" data-id="' + id + '" title="Kurangi Jumlah">' +
+                            '<i class="fas fa-minus fa-xs"></i>' +
+                        '</button>' +
+                        '<span class="qty-val">' + item.qty + '</span>' +
+                        '<button type="button" class="btn-step btn-qty-plus" data-id="' + id + '" title="Tambah Jumlah">' +
+                            '<i class="fas fa-plus fa-xs"></i>' +
+                        '</button>' +
                     '</div>' +
                     '<strong class="text-dark small">' + formatRupiah(itemSubtotal) + '</strong>' +
                 '</div>' +
@@ -643,10 +1211,12 @@ $js = <<<JS
 
         $('#draftItemCountBadge').text(totalQty + ' Item');
         $('#fabDraftBadge').text(totalQty);
+        $('#btnClearDraftFab').removeClass('is-empty').attr('title', 'Kosongkan Seluruh Draft (' + totalQty + ' item)');
         $('#draftSubtotalText').text(formatRupiah(subtotal));
         $('#draftTotalText').text(formatRupiah(subtotal));
         $('#btnProcessPayment').prop('disabled', false);
         $('#btnSaveDraftOnly').prop('disabled', false);
+        saveDraftToStorage();
     }
 
     // Klik tombol + Draft pada kartu produk
@@ -736,13 +1306,166 @@ $js = <<<JS
             }).then(function (res) {
                 if (res.isConfirmed) {
                     draftItems = {};
+                    $('#draftCustomerName').val('');
+                    clearDraftStorage();
                     renderDraft();
                 }
             });
         }
     });
 
-    // Proses Pembayaran (LUNAS)
+    // Floating Action Button: Kosongkan Draft Kasir (di bawah Buka/Tutup)
+    $('#btnClearDraftFab').on('click', function () {
+        if (Object.keys(draftItems).length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Draft Kosong',
+                text: 'Tidak ada item dalam draft kasir untuk dikosongkan.',
+                confirmButtonColor: '#007bff'
+            });
+            return;
+        }
+        $('#btnClearDraft').trigger('click');
+    });
+
+    // State Modal Pembayaran
+    var currentDraftTotal = 0;
+    var cashReceivedValue = 0;
+    var currentPaymentMethod = 'TUNAI';
+
+    function setCashReceived(val) {
+        cashReceivedValue = Math.max(0, parseInt(val) || 0);
+        $('#payCashInput').val(cashReceivedValue > 0 ? Number(cashReceivedValue).toLocaleString('id-ID') : '');
+
+        var diff = cashReceivedValue - currentDraftTotal;
+        var box = $('#payCashChangeBox');
+        var title = $('#payCashChangeTitle');
+        var badge = $('#payCashChangeBadge');
+        var valText = $('#payCashChangeValue');
+
+        if (cashReceivedValue === 0) {
+            box.css({'background': '#fff3cd', 'border-color': '#ffeeba'});
+            title.text('STATUS PEMBAYARAN');
+            badge.removeClass('badge-success badge-danger badge-info').addClass('badge-warning').text('Masukkan Uang');
+            valText.removeClass('text-success text-danger text-info').addClass('text-dark').text(formatRupiah(0));
+        } else if (diff > 0) {
+            box.css({'background': '#e8f5e9', 'border-color': '#c8e6c9'});
+            title.text('UANG KEMBALIAN');
+            badge.removeClass('badge-warning badge-danger badge-info').addClass('badge-success').text('Kembalian');
+            valText.removeClass('text-dark text-danger text-info').addClass('text-success').text(formatRupiah(diff));
+        } else if (diff === 0) {
+            box.css({'background': '#e3f2fd', 'border-color': '#bbdefb'});
+            title.text('STATUS PEMBAYARAN');
+            badge.removeClass('badge-warning badge-danger badge-success').addClass('badge-info').text('Uang Pas');
+            valText.removeClass('text-dark text-danger text-success').addClass('text-primary').text('Rp 0 (Pas)');
+        } else {
+            box.css({'background': '#ffebee', 'border-color': '#ffcdd2'});
+            title.text('UANG KURANG');
+            badge.removeClass('badge-warning badge-success badge-info').addClass('badge-danger').text('Kurang');
+            valText.removeClass('text-dark text-success text-info').addClass('text-danger').text('- ' + formatRupiah(Math.abs(diff)));
+        }
+
+        updatePaymentSubmitButtonState();
+    }
+
+    function updatePaymentSubmitButtonState() {
+        if (currentPaymentMethod === 'TUNAI') {
+            var diff = cashReceivedValue - currentDraftTotal;
+            if (cashReceivedValue <= 0 || diff < 0) {
+                $('#btnFinishPaymentSubmit').prop('disabled', true).css('opacity', '0.65');
+            } else {
+                $('#btnFinishPaymentSubmit').prop('disabled', false).css('opacity', '1');
+            }
+        } else {
+            $('#btnFinishPaymentSubmit').prop('disabled', false).css('opacity', '1');
+        }
+    }
+
+    function setPaymentMethod(method) {
+        currentPaymentMethod = (method || 'TUNAI').toUpperCase();
+
+        $('#payMethodGroup label').removeClass('active');
+        if (currentPaymentMethod === 'TUNAI') {
+            $('#btnTabCash').addClass('active').find('input').prop('checked', true);
+            $('#panelPayCash').show();
+            $('#panelPayQris').hide();
+            $('#panelPayTransfer').hide();
+        } else if (currentPaymentMethod === 'QRIS') {
+            $('#btnTabQris').addClass('active').find('input').prop('checked', true);
+            $('#panelPayCash').hide();
+            $('#panelPayQris').show();
+            $('#panelPayTransfer').hide();
+        } else if (currentPaymentMethod === 'TRANSFER') {
+            $('#btnTabTransfer').addClass('active').find('input').prop('checked', true);
+            $('#panelPayCash').hide();
+            $('#panelPayQris').hide();
+            $('#panelPayTransfer').show();
+        }
+
+        updatePaymentSubmitButtonState();
+    }
+
+    function showPaymentImageModal(type) {
+        var isQris = (String(type).toLowerCase() === 'qris');
+        $('#previewModalIcon').html(isQris ? '<i class="fas fa-qrcode text-warning"></i>' : '<i class="fas fa-university text-info"></i>');
+        $('#modalImagePreviewPaymentLabel').text(isQris ? 'Scan QRIS Pembayaran' : 'Rekening Transfer Bank');
+        $('#previewModalSubtitle').text(isQris ? 'Tunjukkan ke pelanggan untuk scan barcode' : 'Detail rekening transfer pembayaran');
+        $('#previewModalTotalAmount').text(formatRupiah(currentDraftTotal));
+        $('#previewModalInstructionText').text(isQris
+            ? 'Buka aplikasi e-Wallet atau m-Banking (GoPay, OVO, Dana, ShopeePay, BCA, dll) dan scan QR di atas.'
+            : 'Silakan transfer tepat sesuai nominal tagihan ke nomor rekening yang tertera pada gambar.');
+        $('#previewModalImage').attr('src', isQris ? '{$qrisImageUrl}' : '{$transferImageUrl}');
+        $('#modalImagePreviewPayment').modal('show');
+    }
+
+    $(document).on('change', 'input[name="modal_payment_method"]', function () {
+        var selected = $(this).val();
+        setPaymentMethod(selected);
+        if (selected === 'QRIS' || selected === 'TRANSFER') {
+            showPaymentImageModal(selected.toLowerCase());
+        }
+    });
+
+    // Tombol atau klik gambar untuk memperbesar QRIS / Transfer
+    $(document).on('click', '.btn-show-large-preview', function () {
+        var type = $(this).data('type') || (currentPaymentMethod === 'TRANSFER' ? 'transfer' : 'qris');
+        showPaymentImageModal(type);
+    });
+
+    // Tombol Selesaikan Pembayaran di modal preview
+    $('#btnPreviewConfirmFinish').on('click', function () {
+        $('#modalImagePreviewPayment').modal('hide');
+        setTimeout(function () {
+            $('#btnFinishPaymentSubmit').trigger('click');
+        }, 300);
+    });
+
+    // Klik background luar modal preview untuk menutup modal preview
+    $('#modalImagePreviewPayment').on('click', function (e) {
+        if ($(e.target).is('#modalImagePreviewPayment')) {
+            $(this).modal('hide');
+        }
+    });
+
+    // Pastikan tombol close di modal preview selalu menutup modal secara responsif
+    $(document).on('click', '#modalImagePreviewPayment [data-dismiss="modal"]', function (e) {
+        e.preventDefault();
+        $('#modalImagePreviewPayment').modal('hide');
+    });
+
+    // Pertahankan scroll modal utama saat modal preview ditutup
+    $('#modalImagePreviewPayment').on('hidden.bs.modal', function () {
+        if ($('#modalPembayaranKasir').hasClass('show')) {
+            $('body').addClass('modal-open');
+        }
+    });
+
+    // Jika modal pembayaran utama ditutup, pastikan modal preview juga tertutup
+    $('#modalPembayaranKasir').on('hide.bs.modal', function () {
+        $('#modalImagePreviewPayment').modal('hide');
+    });
+
+    // Buka Modal Pembayaran Kasir ("Lakukan Pembayaran")
     $('#btnProcessPayment').on('click', function () {
         var itemsArray = Object.values(draftItems);
         if (itemsArray.length === 0) {
@@ -755,84 +1478,191 @@ $js = <<<JS
         }
 
         var customer = $('#draftCustomerName').val().trim() || 'Umum';
-        var total = $('#draftTotalText').text();
-        var method = $('input[name=\"payment_method\"]:checked').val().toUpperCase();
+        $('#payModalCustomerName').text(customer);
+
+        // Render rincian belanja di modal
+        var tbody = $('#payModalItemTableBody').empty();
+        var totalQty = 0;
+        currentDraftTotal = 0;
+
+        itemsArray.forEach(function (item) {
+            totalQty += item.qty;
+            var itemSubtotal = item.qty * item.harga;
+            currentDraftTotal += itemSubtotal;
+
+            var row = '<tr>' +
+                '<td class="font-weight-bold text-dark text-truncate" style="max-width: 140px;" title="' + item.nama + '">' + item.nama + '</td>' +
+                '<td class="text-center font-weight-bold">' + item.qty + '</td>' +
+                '<td class="text-right text-muted">' + formatRupiah(item.harga) + '</td>' +
+                '<td class="text-right font-weight-bold text-dark">' + formatRupiah(itemSubtotal) + '</td>' +
+            '</tr>';
+            tbody.append(row);
+        });
+
+        $('#payModalBadgeItemCount').text(totalQty + ' Item');
+        $('#payModalSubtotalText').text(formatRupiah(currentDraftTotal));
+        $('#payModalGrandTotalText').text(formatRupiah(currentDraftTotal));
+        $('#payQrisAmountText').text(formatRupiah(currentDraftTotal));
+        $('#payTransferAmountText').text(formatRupiah(currentDraftTotal));
+
+        // Set metode bayar default di modal (Tunai)
+        setPaymentMethod('TUNAI');
+
+        // Inisialisasi uang diterima
+        setCashReceived(0);
+
+        $('#modalPembayaranKasir').modal('show');
+    });
+
+    // Input nominal cash diterima (keyboard fisik)
+    $(document).on('input', '#payCashInput', function () {
+        var raw = $(this).val().replace(/\D/g, '');
+        var num = parseInt(raw) || 0;
+        setCashReceived(num);
+    });
+
+    // Reset input cash
+    $('#btnPayCashReset').on('click', function () {
+        setCashReceived(0);
+        $('#payCashInput').focus();
+    });
+
+    // Tombol nominal cepat (Uang Pas & Pecahan Rupiah)
+    $(document).on('click', '.btn-quick-cash', function () {
+        var action = $(this).data('action');
+        if (action === 'exact') {
+            setCashReceived(currentDraftTotal);
+        } else {
+            var amount = parseInt($(this).data('amount')) || 0;
+            setCashReceived(amount);
+        }
+    });
+
+    // Keyboard Custom / Numpad Touch Kasir
+    $(document).on('click', '.btn-numpad', function () {
+        var key = $(this).data('key');
+        var action = $(this).data('action');
+        var amount = $(this).data('amount');
+
+        if (action === 'clear') {
+            setCashReceived(0);
+        } else if (action === 'backspace') {
+            var strVal = String(cashReceivedValue);
+            var newStr = strVal.slice(0, -1);
+            setCashReceived(parseInt(newStr) || 0);
+        } else if (action === 'add') {
+            var addAmt = parseInt(amount) || 0;
+            setCashReceived(cashReceivedValue + addAmt);
+        } else if (typeof key !== 'undefined') {
+            var keyStr = String(key);
+            var curStr = cashReceivedValue > 0 ? String(cashReceivedValue) : '';
+            var nextStr = curStr + keyStr;
+            if (nextStr.length <= 11) {
+                setCashReceived(parseInt(nextStr) || 0);
+            }
+        }
+    });
+
+    // Tombol Selesaikan Pembayaran di Modal Pembayaran Kasir
+    $('#btnFinishPaymentSubmit').on('click', function () {
+        var itemsArray = Object.values(draftItems);
+        if (itemsArray.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Keranjang Kosong',
+                text: 'Pilih minimal satu barang untuk diproses.'
+            });
+            return;
+        }
+
+        var customer = $('#payModalCustomerName').text().trim() || 'Umum';
+        var catatan = '';
+
+        if (currentPaymentMethod === 'TUNAI') {
+            var diff = cashReceivedValue - currentDraftTotal;
+            if (cashReceivedValue < currentDraftTotal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Uang Kurang',
+                    text: 'Nominal uang diterima masih kurang ' + formatRupiah(Math.abs(diff)) + '.'
+                });
+                return;
+            }
+            catatan = 'Bayar Tunai: ' + formatRupiah(cashReceivedValue) + ' | Kembali: ' + formatRupiah(Math.max(0, diff));
+        } else if (currentPaymentMethod === 'QRIS') {
+            catatan = 'Pembayaran via QRIS (' + formatRupiah(currentDraftTotal) + ')';
+        } else if (currentPaymentMethod === 'TRANSFER') {
+            catatan = 'Pembayaran via Transfer Bank (' + formatRupiah(currentDraftTotal) + ')';
+        }
 
         Swal.fire({
-            title: 'Konfirmasi Pembayaran',
-            html: 'Total Tagihan: <strong class=\"text-success\" style=\"font-size: 1.25rem;\">' + total + '</strong><br>' +
-                  'Pelanggan: <strong>' + customer + '</strong><br>' +
-                  'Metode Bayar: <strong>' + method + '</strong><br><br>' +
-                  '<small class=\"text-muted\">Stok barang akan dikurangi dan otomatis dicatat ke Log Barang.</small>',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class=\"fas fa-check-circle mr-1\"></i> Selesaikan Pembayaran',
-            cancelButtonText: 'Batal'
-        }).then(function (res) {
-            if (res.isConfirmed) {
-                Swal.fire({
-                    title: 'Memproses Pembayaran...',
-                    text: 'Mohon tunggu sebentar...',
-                    allowOutsideClick: false,
-                    didOpen: function () {
-                        Swal.showLoading();
-                    }
-                });
+            title: 'Memproses Pembayaran...',
+            text: 'Mohon tunggu sebentar...',
+            allowOutsideClick: false,
+            didOpen: function () {
+                Swal.showLoading();
+            }
+        });
 
-                $.ajax({
-                    url: '{$simpanTransaksiUrl}',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        status: 'LUNAS',
-                        customer_name: customer,
-                        payment_method: method,
-                        items: itemsArray,
-                        '{$csrfParam}': '{$csrfToken}'
-                    }),
-                    headers: {
-                        'X-CSRF-Token': '{$csrfToken}'
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Pembayaran Berhasil!',
-                                html: 'No. Transaksi: <strong class=\"text-primary\">' + response.nomor_transaksi + '</strong><br>' +
-                                      'Transaksi berhasil diproses & dicatat di <strong>Log Barang</strong>.<br><br>' +
-                                      '<span class=\"text-muted small\">Transaksi tersimpan di menu Transaksi.</span>',
-                                showCancelButton: true,
-                                confirmButtonText: '<i class=\"fas fa-receipt mr-1\"></i> Lihat di Menu Transaksi',
-                                cancelButtonText: '<i class=\"fas fa-plus mr-1\"></i> Transaksi Baru',
-                                confirmButtonColor: '#007bff',
-                                cancelButtonColor: '#28a745'
-                            }).then(function (act) {
-                                draftItems = {};
-                                $('#draftCustomerName').val('');
-                                renderDraft();
-                                if (act.isConfirmed) {
-                                    window.location.href = '{$transaksiIndexUrl}';
-                                } else {
-                                    window.location.reload();
-                                }
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal Memproses Transaksi',
-                                text: response.message || 'Terjadi kesalahan sistem.'
-                            });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Kesalahan Jaringan',
-                            text: 'Gagal terhubung ke server. Silakan coba kembali.'
-                        });
+        $.ajax({
+            url: '{$simpanTransaksiUrl}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                status: 'LUNAS',
+                customer_name: customer,
+                payment_method: currentPaymentMethod,
+                draft_id: activeDraftId,
+                items: itemsArray,
+                catatan: catatan,
+                '{$csrfParam}': '{$csrfToken}'
+            }),
+            headers: {
+                'X-CSRF-Token': '{$csrfToken}'
+            },
+            success: function (response) {
+                if (response.success) {
+                    $('#modalPembayaranKasir').modal('hide');
+                    draftItems = {};
+                    $('#draftCustomerName').val('');
+                    clearDraftStorage();
+                    renderDraft();
+
+                    var detailInfo = 'Metode: <strong>' + currentPaymentMethod + '</strong><br>' +
+                        'Total: <strong class="text-success">' + formatRupiah(currentDraftTotal) + '</strong><br>';
+
+                    if (currentPaymentMethod === 'TUNAI') {
+                        detailInfo += 'Uang Diterima: <strong>' + formatRupiah(cashReceivedValue) + '</strong><br>' +
+                                      'Kembalian: <strong class="text-success">' + formatRupiah(Math.max(0, cashReceivedValue - currentDraftTotal)) + '</strong><br>';
                     }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pembayaran Berhasil Diselesaikan!',
+                        html: 'No. Transaksi: <strong class="text-primary">' + response.nomor_transaksi + '</strong><br>' +
+                              detailInfo + '<br>' +
+                              '<span class="text-muted small">Transaksi tersimpan. Mengalihkan ke menu Transaksi...</span>',
+                        showConfirmButton: true,
+                        confirmButtonText: '<i class="fas fa-receipt mr-1"></i> Lanjut ke Transaksi',
+                        confirmButtonColor: '#28a745',
+                        timer: 2500,
+                        timerProgressBar: true
+                    }).then(function () {
+                        window.location.href = '{$transaksiIndexUrl}';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Memproses Transaksi',
+                        text: response.message || 'Terjadi kesalahan sistem.'
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Kesalahan Jaringan',
+                    text: 'Gagal terhubung ke server. Silakan coba kembali.'
                 });
             }
         });
@@ -852,7 +1682,7 @@ $js = <<<JS
 
         var customer = $('#draftCustomerName').val().trim() || 'Umum';
         var total = $('#draftTotalText').text();
-        var method = $('input[name=\"payment_method\"]:checked').val().toUpperCase();
+        var method = currentPaymentMethod || 'TUNAI';
 
         Swal.fire({
             title: 'Simpan Sebagai Draft?',
@@ -884,6 +1714,7 @@ $js = <<<JS
                         status: 'DRAFT',
                         customer_name: customer,
                         payment_method: method,
+                        draft_id: activeDraftId,
                         items: itemsArray,
                         '{$csrfParam}': '{$csrfToken}'
                     }),
@@ -905,6 +1736,7 @@ $js = <<<JS
                             }).then(function (act) {
                                 draftItems = {};
                                 $('#draftCustomerName').val('');
+                                clearDraftStorage();
                                 renderDraft();
                                 if (act.isConfirmed) {
                                     window.location.href = '{$transaksiDraftUrl}';
@@ -983,6 +1815,47 @@ $js = <<<JS
         });
         $('#noKategoriFound').hide();
     });
+
+    // Pindahkan modal kasir & preview ke body agar tidak terperangkap z-index / stacking context .content-wrapper
+    $('#modalPembayaranKasir').appendTo('body');
+    $('#modalImagePreviewPayment').appendTo('body');
+
+    // Matikan enforceFocus Bootstrap agar tidak terjadi infinite focus lock / screen stuck pada stacked modals
+    if ($.fn.modal && $.fn.modal.Constructor) {
+        $.fn.modal.Constructor.prototype._enforceFocus = function () {};
+    }
+
+    // Inisialisasi modal preview dengan backdrop false
+    $('#modalImagePreviewPayment').modal({
+        backdrop: false,
+        show: false
+    });
+
+    // Inisialisasi: Jika ada draft yang diload dari server (melalui parameter URL draft_id)
+    var serverDraft = {$serverDraftJson};
+    if (serverDraft && serverDraft.items && Object.keys(serverDraft.items).length > 0) {
+        draftItems = serverDraft.items;
+        activeDraftId = serverDraft.id;
+        activeDraftNomor = serverDraft.nomor_transaksi || '';
+        $('#draftCustomerName').val(serverDraft.nama_pelanggan || '');
+        if (serverDraft.metode_pembayaran) {
+            currentPaymentMethod = String(serverDraft.metode_pembayaran).toUpperCase();
+        }
+        isDraftOpen = true;
+        saveDraftToStorage();
+        Swal.fire({
+            icon: 'info',
+            title: 'Draft Kasir Dimuat',
+            html: 'Draft transaksi <strong class=\"text-primary\">' + serverDraft.nomor_transaksi + '</strong> (' + (serverDraft.nama_pelanggan || 'Umum') + ') berhasil dimuat ke kasir.<br><span class=\"text-muted small\">Anda dapat menambah item, mengubah kuantitas, atau langsung melakukan pembayaran.</span>',
+            confirmButtonColor: '#28a745',
+            confirmButtonText: '<i class=\"fas fa-cash-register mr-1\"></i> Buka Kasir'
+        });
+    } else {
+        loadDraftFromStorage();
+    }
+    updateDraftBanner();
+    toggleDraft(isDraftOpen);
+    renderDraft();
 JS;
 $this->registerJs($js);
 ?>

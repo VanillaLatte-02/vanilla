@@ -74,13 +74,6 @@ class SiteController extends Controller
      */
     public function actionLogin()
     {
-        // $randomString = Yii::$app->security->generateRandomString(32);
-        // var_dump($randomString);
-        // $password = 'super';  
-        // $passwordHash = Yii::$app->security->generatePasswordHash($password);
-        // var_dump($passwordHash);
-        // die;
-
         $this->layout = 'login';
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
@@ -136,5 +129,18 @@ class SiteController extends Controller
     public function actionAbout()
     {
         return $this->render('about');
+    }
+
+    /**
+     * Redirects to the current user's profile view.
+     *
+     * @return Response
+     */
+    public function actionProfile()
+    {
+        if (Yii::$app->user->isGuest) {
+            return $this->redirect(['site/login']);
+        }
+        return $this->redirect(['user/view', 'id' => Yii::$app->user->id]);
     }
 }

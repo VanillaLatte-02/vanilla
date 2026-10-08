@@ -33,9 +33,12 @@ $formatRupiah = function ($num) {
                         <i class="fas fa-print mr-1"></i> Cetak Struk
                     </a>
                 <?php elseif (strtoupper($model->status) === Transaksi::STATUS_DRAFT): ?>
-                    <?= Html::beginForm(['transaksi/bayar-draft', 'id' => $model->id], 'post', ['class' => 'd-inline ml-1', 'onsubmit' => 'return confirm("Lunasi transaksi draft ini? Stok barang akan dikurangi dan dicatat di Log Barang.")']) ?>
-                        <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-cash-register mr-1"></i> Bayar Sekarang
+                    <a href="<?= Url::to(['kasir/index', 'draft_id' => $model->id]) ?>" class="btn btn-primary btn-sm ml-1" title="Buka transaksi ini di halaman Kasir">
+                        <i class="fas fa-shopping-basket mr-1"></i> Lanjutkan ke Kasir
+                    </a>
+                    <?= Html::beginForm(['transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline ml-1']) ?>
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-action-hapus" data-nomor="<?= Html::encode($model->nomor_transaksi) ?>" title="Hapus Draft">
+                            <i class="fas fa-trash-alt mr-1"></i> Hapus Draft
                         </button>
                     <?= Html::endForm() ?>
                 <?php endif; ?>
@@ -102,4 +105,41 @@ $formatRupiah = function ($num) {
     </div>
 
 </div>
+
+<?php
+$this->registerJs("
+    // SweetAlert Konfirmasi Aksi Hapus Transaksi (Draft)
+    $(document).on('click', '.btn-action-hapus', function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        var nomor = $(this).data('nomor') || 'Transaksi';
+
+        Swal.fire({
+            title: 'Hapus Transaksi Draft?',
+            html: 'Apakah Anda yakin ingin menghapus draft transaksi <strong class=\"text-danger\">' + nomor + '</strong>?<br>' +
+                  '<span class=\"text-muted small\">Draft ini akan dihapus permanen dari daftar transaksi.</span>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class=\"fas fa-trash-alt mr-1\"></i> Ya, Hapus Draft!',
+            cancelButtonText: '<i class=\"fas fa-times mr-1\"></i> Batal',
+            reverseButtons: true,
+            focusCancel: true
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Menghapus Draft...',
+                    text: 'Mohon tunggu sebentar...',
+                    allowOutsideClick: false,
+                    didOpen: function() {
+                        Swal.showLoading();
+                    }
+                });
+                form.submit();
+            }
+        });
+    });
+");
+?>
 

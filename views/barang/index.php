@@ -1,11 +1,13 @@
 <?php
 
 use yii\helpers\Html;
+use yii\helpers\Url;
 use yii\grid\GridView;
 use yii\helpers\StringHelper;
 
 /* @var $this yii\web\View */
 /* @var $barang app\models\Barang[] */
+/* @var $dataProvider yii\data\ActiveDataProvider */
 /* @var $view string */
 /* @var $keyword string|null */
 
@@ -53,6 +55,14 @@ $this->registerJs("
     }
     #listKategoriModal .item-kategori-entry.is-hidden {
         display: none !important;
+    }
+    .barang-product-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        border-radius: 8px;
+    }
+    .barang-product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
     }
 </style>
 <div class="barang-index">
@@ -212,7 +222,7 @@ $this->registerJs("
                         ]) ?>
                     </span>
                 <?php endif; ?>
-                <span class="badge badge-light border text-dark font-weight-bold ml-1"><?= count($barang) ?> barang ditemukan</span>
+                <span class="badge badge-light border text-dark font-weight-bold ml-1"><?= $dataProvider->getTotalCount() ?> barang ditemukan</span>
             </div>
             <div>
                 <?= Html::a('<i class="fas fa-undo mr-1"></i> Reset Filter', ['barang/index', 'view' => $view], [
@@ -242,9 +252,10 @@ $this->registerJs("
                 </div>
             <?php else: ?>
                 <?php foreach ($barang as $item): ?>
-                    <div class="col-md-3 mb-4">
-                        <div class="card h-100 shadow-sm">
-                            <div class="text-center p-2 bg-light border-bottom" style="height: 160px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-3">
+                        <div class="card h-100 shadow-sm border-0 barang-product-card">
+                            <!-- Gambar Produk & Overlay Stok Mirip Kasir -->
+                            <div class="text-center p-2 bg-light border-bottom position-relative" style="height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px 8px 0 0;">
                                 <?php if ($item->getGambarUrl()): ?>
                                     <?= Html::img($item->getGambarUrl(), [
                                         'class' => 'img-fluid',
@@ -252,202 +263,309 @@ $this->registerJs("
                                         'style' => 'max-height: 100%; max-width: 100%; object-fit: contain;'
                                     ]) ?>
                                 <?php else: ?>
-                                    <i class="fas fa-box-open fa-4x text-secondary"></i>
+                                    <i class="fas fa-box-open fa-3x text-secondary" style="opacity: 0.6;"></i>
                                 <?php endif; ?>
-                            </div>
-                            <div class="card-body">
-                                <!-- Nama Barang -->
-                                <h5 class="text-center mb-3"><?= Html::encode($item->nama_barang) ?></h5>
 
-                                <!-- Kode Barang -->
-                                <div class="d-flex justify-content-between mb-2">
-                                    <p class="mb-1">Kode:</p>
-                                    <p class="mb-1"><?= Html::encode($item->kode_barang) ?></p>
-                                </div>
-
-                                <!-- Kategori Barang -->
-                                <div class="d-flex justify-content-between mb-2">
-                                    <p class="mb-1">Kategori:</p>
-                                    <p class="mb-1"><?= Html::encode($item->kategori->nama_kategori) ?></p>
-                                </div>
-
-                                <!-- Satuan Barang -->
-                                <div class="d-flex justify-content-between mb-2">
-                                    <p class="mb-1">Satuan:</p>
-                                    <p class="mb-1"><?= Html::encode($item->satuan->satuan) ?></p>
-                                </div>
-
-                                <!-- Deskripsi -->
-                                <p class="mb-0 font-weight-bold">Deskripsi:</p>
-                                <p class="mb-2 text-dark">
-                                    <?= Html::encode(\yii\helpers\StringHelper::truncate($item->deskripsi, 20, '...')) ?>
-                                </p>
-
-                                <!-- Harga Jual -->
-                                <div class="d-flex justify-content-between mb-2">
-                                    <p class="mb-1 font-weight-bold">Harga:</p>
-                                    <button class="btn btn-primary text-bold btn-sm"><?= $item->hargaJualFormatted ?></button>
-                                </div>
-
-                                <!-- Stok -->
-                                <div class="d-flex justify-content-between mb-2">
-                                    <p class="mb-1">Stok:</p>
-                                    <?php if ($item->stok <= 10): ?>
-                                        <button class="btn btn-danger text-bold btn-sm"><?= $item->stok ?></button>
+                                <!-- Stok Badge Overlay -->
+                                <div class="position-absolute" style="top: 8px; right: 8px;">
+                                    <?php if ($item->stok <= 0): ?>
+                                        <span class="badge badge-danger px-2 py-1 shadow-sm font-weight-bold">Habis</span>
+                                    <?php elseif ($item->stok <= 5): ?>
+                                        <span class="badge badge-warning text-dark px-2 py-1 shadow-sm font-weight-bold"><i class="fas fa-exclamation-triangle mr-1"></i>Sisa <?= $item->stok ?></span>
+                                    <?php elseif ($item->stok <= 10): ?>
+                                        <span class="badge badge-warning text-dark px-2 py-1 shadow-sm font-weight-bold">Sisa <?= $item->stok ?></span>
                                     <?php else: ?>
-                                        <button class="btn btn-primary text-bold btn-sm"><?= $item->stok ?></button>
+                                        <span class="badge badge-success px-2 py-1 shadow-sm font-weight-bold">Stok <?= $item->stok ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="card-body d-flex flex-column justify-content-between p-3">
+                                <div>
+                                    <!-- Nama & Kategori -->
+                                    <h6 class="font-weight-bold mb-1 text-dark text-truncate" title="<?= Html::encode($item->nama_barang) ?>">
+                                        <?= Html::encode($item->nama_barang) ?>
+                                    </h6>
+                                    <small class="text-muted d-block text-truncate mb-2">
+                                        <?= Html::encode($item->kode_barang) ?> &bull; <?= Html::encode($item->kategori->nama_kategori ?? '-') ?>
+                                    </small>
+
+                                    <!-- Harga Jual & Satuan -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-primary font-weight-bold" style="font-size: 1.05rem;">
+                                            <?= $item->hargaJualFormatted ?>
+                                        </span>
+                                        <small class="text-muted font-weight-bold">/ <?= Html::encode($item->satuan->satuan ?? 'pcs') ?></small>
+                                    </div>
+
+                                    <?php if (!empty($item->deskripsi)): ?>
+                                        <p class="text-muted small mb-2 text-truncate" title="<?= Html::encode($item->deskripsi) ?>">
+                                            <?= Html::encode($item->deskripsi) ?>
+                                        </p>
                                     <?php endif; ?>
                                 </div>
 
-                                <div class="text-center mt-3">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Action Buttons">
+                                <!-- Action Buttons Master Barang -->
+                                <div class="pt-2 border-top mt-2">
+                                    <div class="btn-group btn-group-sm w-100" role="group" aria-label="Aksi Barang">
                                         <?= Html::a(
                                             '<i class="fas fa-eye"></i>',
                                             ['barang/detail', 'id' => $item->id],
-                                            ['class' => 'btn btn-info', 'title' => 'Lihat']
+                                            ['class' => 'btn btn-info flex-fill', 'title' => 'Detail Barang']
                                         ) ?>
                                         <?= Html::a(
                                             '<i class="fas fa-edit"></i>',
                                             ['barang/edit', 'id' => $item->id],
-                                            ['class' => 'btn btn-warning', 'title' => 'Edit']
+                                            ['class' => 'btn btn-warning flex-fill', 'title' => 'Edit Barang']
                                         ) ?>
+                                        <button type="button" class="btn btn-success flex-fill btn-ubah-stok"
+                                            data-action="plus"
+                                            data-id="<?= $item->id ?>"
+                                            data-nama="<?= Html::encode($item->nama_barang) ?>"
+                                            data-kode="<?= Html::encode($item->kode_barang) ?>"
+                                            data-stok="<?= (int)$item->stok ?>"
+                                            data-url="<?= Url::to(['barang/plus-stok', 'id' => $item->id]) ?>"
+                                            title="Tambah Stok">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary flex-fill btn-ubah-stok"
+                                            data-action="minus"
+                                            data-id="<?= $item->id ?>"
+                                            data-nama="<?= Html::encode($item->nama_barang) ?>"
+                                            data-kode="<?= Html::encode($item->kode_barang) ?>"
+                                            data-stok="<?= (int)$item->stok ?>"
+                                            data-url="<?= Url::to(['barang/minus-stok', 'id' => $item->id]) ?>"
+                                            title="Kurangi Stok">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
                                         <?= Html::a(
-                                            '<i class="fas fa-trash"></i>',
-                                            ['delete', 'id' => $item->id],
+                                            '<i class="fas fa-trash-alt"></i>',
+                                            ['barang/delete', 'id' => $item->id],
                                             [
-                                                'class' => 'btn btn-danger',
-                                                'title' => 'Hapus',
+                                                'class' => 'btn btn-danger flex-fill',
+                                                'title' => 'Hapus Barang',
                                                 'data-confirm' => 'Apakah Anda yakin ingin menghapus barang "' . Html::encode($item->nama_barang) . '"?',
-                                                'data-method' => 'post'
-                                            ]
-                                        ) ?>
-                                        <?= Html::a(
-                                            '<i class="fas fa-plus"></i>',
-                                            ['barang/plus-stok', 'id' => $item->id],
-                                            [
-                                                'class' => 'btn btn-success',
-                                                'title' => 'Tambah Stok',
-                                                'data-method' => 'post'
-                                            ]
-                                        ) ?>
-                                        <?= Html::a(
-                                            '<i class="fas fa-minus"></i>',
-                                            ['barang/minus-stok', 'id' => $item->id],
-                                            [
-                                                'class' => 'btn btn-secondary',
-                                                'title' => 'Kurangi Stok',
                                                 'data-method' => 'post'
                                             ]
                                         ) ?>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
-    <?php else: ?>
-        <?= GridView::widget([
-            'dataProvider' => new \yii\data\ArrayDataProvider([
-                'allModels' => $barang,
-                'pagination' => [
-                    'pageSize' => 30,
-                ],
-            ]),
-            'emptyText' => '<div class="text-center py-4 text-muted"><i class="fas fa-box-open fa-3x mb-2 d-block"></i>' . Html::encode($emptyMessage) . '</div>',
-            'columns' => [
-                [
-                    'label' => 'Gambar',
-                    'format' => 'raw',
-                    'contentOptions' => ['style' => 'width: 70px; text-align: center; vertical-align: middle;'],
-                    'value' => function ($model) {
-                        if ($model->getGambarUrl()) {
-                            return Html::img($model->getGambarUrl(), [
-                                'class' => 'img-thumbnail',
-                                'style' => 'width: 45px; height: 45px; object-fit: cover;'
-                            ]);
-                        }
-                        return '<i class="fas fa-image text-muted fa-2x"></i>';
-                    },
-                ],
-                'kode_barang',
-                'nama_barang',
-                [
-                    'attribute' => 'kategori_id',
-                    'value' => function ($model) {
-            return $model->kategori ? $model->kategori->nama_kategori : '-';
-        },
-                    'label' => 'Kategori',
-                ],
-                [
-                    'attribute' => 'satuan_id',
-                    'value' => function ($model) {
-            return $model->satuan ? $model->satuan->satuan : '-';
-        },
-                    'label' => 'Satuan',
-                ],
-                [
-                    'label' => 'Deskripsi',
-                    'format' => 'raw',
-                    'value' => function ($model) {
-            $deskripsi = $model->deskripsi;
-            if (strlen($deskripsi) > 20) {
-                $deskripsi = substr($deskripsi, 0, 20) . '...';
-            }
-            return '<p class="mb-0 text-dark">' . Html::encode($deskripsi) . '</p>';
-        },
-                    'contentOptions' => ['class' => 'text-wrap'],
-                ],
 
-                [
-                    'attribute' => 'harga_jual',
-                    'label' => 'Harga',
-                    'format' => 'raw',
-                    'value' => function ($model) {
-                        return '<strong class="text-dark">' . $model->hargaJualFormatted . '</strong>';
-                    },
-                ],
-                'stok',
-                [
-                    'class' => 'yii\grid\ActionColumn',
-                    'header' => 'Action',
-                    'template' => '{view} {update} {delete} {plus} {minus}',
-                    'buttons' => [
-                        'view' => function ($url, $model, $key) {
-            return Html::a('<i class="fas fa-eye"></i>', ['barang/detail', 'id' => $model->id], [
-                'class' => 'btn btn-info btn-sm',
-            ]);
-        },
-                        'update' => function ($url, $model, $key) {
-            return Html::a('<i class="fas fa-edit"></i>', ['barang/edit', 'id' => $model->id], [
-                'class' => 'btn btn-warning btn-sm',
-            ]);
-        },
-                        'delete' => function ($url, $model, $key) {
-            return Html::a('<i class="fas fa-trash"></i>', ['barang/delete', 'id' => $model->id], [
-                'class' => 'btn btn-danger btn-sm',
-                'data-confirm' => 'Apakah Anda yakin ingin menghapus barang "' . Html::encode($model->nama_barang) . '"?',
-                'data-method' => 'post',
-            ]);
-        },
-                        'plus' => function ($url, $model, $key) {
-            return Html::a('<i class="fas fa-plus"></i>', ['barang/plus-stok', 'id' => $model->id], [
-                'class' => 'btn btn-success btn-sm',
-                'data-method' => 'post',
-            ]);
-        },
-                        'minus' => function ($url, $model, $key) {
-            return Html::a('<i class="fas fa-minus"></i>', ['barang/minus-stok', 'id' => $model->id], [
-                'class' => 'btn btn-secondary btn-sm',
-                'data-method' => 'post',
-            ]);
-        },
+        <!-- Pagination Bar untuk Grid View (Batas 20 Produk) -->
+        <?php if ($dataProvider->getTotalCount() > 0): ?>
+            <div class="card shadow-sm border-0 mb-4 bg-white">
+                <div class="card-body py-2 px-3 d-flex flex-wrap justify-content-between align-items-center">
+                    <div class="text-muted small mb-2 mb-md-0">
+                        Menampilkan <strong><?= $dataProvider->getCount() ?></strong> dari <strong><?= $dataProvider->getTotalCount() ?></strong> produk (Halaman <strong><?= $dataProvider->pagination->getPage() + 1 ?></strong> dari <strong><?= max(1, $dataProvider->pagination->getPageCount()) ?></strong>)
+                    </div>
+                    <?php if ($dataProvider->pagination->getPageCount() > 1): ?>
+                        <div>
+                            <?= \yii\widgets\LinkPager::widget([
+                                'pagination' => $dataProvider->pagination,
+                                'options' => ['class' => 'pagination pagination-sm m-0'],
+                                'linkContainerOptions' => ['class' => 'page-item'],
+                                'linkOptions' => ['class' => 'page-link'],
+                                'disabledListItemSubTagOptions' => ['tag' => 'a', 'class' => 'page-link'],
+                                'prevPageLabel' => '&laquo; Sebelumnya',
+                                'nextPageLabel' => 'Berikutnya &raquo;',
+                            ]) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+    <?php else: ?>
+        <!-- Main Card Table View (Selaras dengan Transaksi & Log Barang) -->
+        <div class="card card-outline card-primary shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between" style="gap: 10px;">
+                    <h5 class="card-title mb-0 font-weight-bold text-dark">
+                        <i class="fas fa-boxes text-primary mr-2"></i> Daftar Master Barang
+                    </h5>
+                    <span class="badge badge-light border text-dark font-weight-normal px-2 py-1" style="font-size: 0.9rem;">
+                        <i class="fas fa-box text-primary mr-1"></i> Total: <strong><?= $dataProvider->getTotalCount() ?></strong> Barang
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-0 table-responsive">
+                <?= GridView::widget([
+                    'dataProvider' => $dataProvider,
+                    'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle'],
+                    'layout' => "{items}\n<div class=\"card-footer bg-white clearfix d-flex flex-wrap justify-content-between align-items-center py-2 px-3\"><div class=\"text-muted small\">{summary}</div><div>{pager}</div></div>",
+                    'pager' => [
+                        'options' => ['class' => 'pagination pagination-sm m-0'],
+                        'linkContainerOptions' => ['class' => 'page-item'],
+                        'linkOptions' => ['class' => 'page-link'],
+                        'disabledListItemSubTagOptions' => ['tag' => 'a', 'class' => 'page-link'],
+                        'prevPageLabel' => '&laquo; Sebelumnya',
+                        'nextPageLabel' => 'Berikutnya &raquo;',
                     ],
-                ],
-            ],
-        ]); ?>
+                    'emptyText' => '<div class="text-center text-muted p-5">' .
+                        '<i class="fas fa-box-open fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i><br>' .
+                        '<h5 class="font-weight-bold">Tidak Ada Data Barang</h5>' .
+                        '<p class="small mb-0">' . Html::encode($emptyMessage) . '</p>' .
+                    '</div>',
+                    'columns' => [
+                        [
+                            'class' => 'yii\grid\SerialColumn',
+                            'header' => 'No',
+                            'headerOptions' => ['style' => 'width: 50px; text-align: center; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: center; vertical-align: middle;'],
+                        ],
+                        [
+                            'label' => 'Gambar',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'width: 70px; text-align: center; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'width: 70px; text-align: center; vertical-align: middle;'],
+                            'value' => function ($model) {
+                                if ($model->getGambarUrl()) {
+                                    return Html::img($model->getGambarUrl(), [
+                                        'class' => 'img-thumbnail rounded shadow-sm',
+                                        'style' => 'width: 44px; height: 44px; object-fit: cover;'
+                                    ]);
+                                }
+                                return '<span class="text-muted"><i class="fas fa-image fa-2x"></i></span>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'kode_barang',
+                            'header' => 'Kode Barang',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'width: 130px; text-align: center; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: center; vertical-align: middle;'],
+                            'value' => function ($model) {
+                                return '<span class="badge badge-light border text-dark font-weight-bold px-2 py-1"><i class="fas fa-barcode mr-1 text-muted"></i>' . Html::encode($model->kode_barang) . '</span>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'nama_barang',
+                            'header' => 'Nama Barang',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'vertical-align: middle;'],
+                            'value' => function ($model) {
+                                return '<strong class="text-dark font-weight-bold">' . Html::encode($model->nama_barang) . '</strong>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'kategori_id',
+                            'header' => 'Kategori',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'vertical-align: middle;'],
+                            'value' => function ($model) {
+                                $nama = $model->kategori ? $model->kategori->nama_kategori : '-';
+                                return '<span>' . Html::encode($nama) . '</span>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'satuan_id',
+                            'header' => 'Satuan',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'text-align: center; width: 90px; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: center; vertical-align: middle;'],
+                            'value' => function ($model) {
+                                $satuan = $model->satuan ? $model->satuan->satuan : '-';
+                                return '<span class="badge badge-light border font-weight-bold px-2 py-1">' . Html::encode($satuan) . '</span>';
+                            },
+                        ],
+                        [
+                            'label' => 'Deskripsi',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'vertical-align: middle; max-width: 220px; white-space: normal;'],
+                            'value' => function ($model) {
+                                $deskripsi = $model->deskripsi;
+                                if (empty($deskripsi)) {
+                                    return '<span class="text-muted font-italic">-</span>';
+                                }
+                                if (strlen($deskripsi) > 30) {
+                                    $deskripsi = substr($deskripsi, 0, 30) . '...';
+                                }
+                                return '<small class="text-muted">' . Html::encode($deskripsi) . '</small>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'harga_jual',
+                            'header' => 'Harga Jual',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'text-align: right; width: 140px; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: right; vertical-align: middle; font-weight: bold;'],
+                            'value' => function ($model) {
+                                return '<span class="text-dark font-weight-bold" style="font-size: 1.05rem;">' . $model->hargaJualFormatted . '</span>';
+                            },
+                        ],
+                        [
+                            'attribute' => 'stok',
+                            'header' => 'Stok',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'text-align: center; width: 100px; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: center; vertical-align: middle;'],
+                            'value' => function ($model) {
+                                if ($model->stok <= 10) {
+                                    return '<span class="badge badge-danger px-2 py-1 font-weight-bold" title="Stok Menipis"><i class="fas fa-exclamation-triangle mr-1"></i> ' . $model->stok . '</span>';
+                                }
+                                return '<span class="badge badge-success px-2 py-1 font-weight-bold">' . $model->stok . '</span>';
+                            },
+                        ],
+                        [
+                            'header' => 'Aksi',
+                            'format' => 'raw',
+                            'headerOptions' => ['style' => 'width: 180px; text-align: center; vertical-align: middle;'],
+                            'contentOptions' => ['style' => 'text-align: center; vertical-align: middle;'],
+                            'value' => function ($model) {
+                                $btnDetail = Html::a('<i class="fas fa-eye"></i>', ['barang/detail', 'id' => $model->id], [
+                                    'class' => 'btn btn-info btn-sm',
+                                    'title' => 'Detail Barang',
+                                ]);
+                                $btnEdit = Html::a('<i class="fas fa-edit"></i>', ['barang/edit', 'id' => $model->id], [
+                                    'class' => 'btn btn-warning btn-sm',
+                                    'title' => 'Edit Barang',
+                                ]);
+                                $btnPlus = '<button type="button" class="btn btn-success btn-sm btn-ubah-stok" ' .
+                                    'data-action="plus" ' .
+                                    'data-id="' . $model->id . '" ' .
+                                    'data-nama="' . Html::encode($model->nama_barang) . '" ' .
+                                    'data-kode="' . Html::encode($model->kode_barang) . '" ' .
+                                    'data-stok="' . (int)$model->stok . '" ' .
+                                    'data-url="' . Url::to(['barang/plus-stok', 'id' => $model->id]) . '" ' .
+                                    'title="Tambah Stok">' .
+                                    '<i class="fas fa-plus"></i>' .
+                                '</button>';
+
+                                $btnMinus = '<button type="button" class="btn btn-secondary btn-sm btn-ubah-stok" ' .
+                                    'data-action="minus" ' .
+                                    'data-id="' . $model->id . '" ' .
+                                    'data-nama="' . Html::encode($model->nama_barang) . '" ' .
+                                    'data-kode="' . Html::encode($model->kode_barang) . '" ' .
+                                    'data-stok="' . (int)$model->stok . '" ' .
+                                    'data-url="' . Url::to(['barang/minus-stok', 'id' => $model->id]) . '" ' .
+                                    'title="Kurangi Stok">' .
+                                    '<i class="fas fa-minus"></i>' .
+                                '</button>';
+                                $btnDelete = Html::a('<i class="fas fa-trash-alt"></i>', ['barang/delete', 'id' => $model->id], [
+                                    'class' => 'btn btn-danger btn-sm',
+                                    'title' => 'Hapus Barang',
+                                    'data-confirm' => 'Apakah Anda yakin ingin menghapus barang "' . Html::encode($model->nama_barang) . '"?',
+                                    'data-method' => 'post',
+                                ]);
+
+                                return '<div class="btn-group btn-group-sm" role="group" aria-label="Aksi">' .
+                                    $btnDetail . $btnEdit . $btnPlus . $btnMinus . $btnDelete .
+                                '</div>';
+                            },
+                        ],
+                    ],
+                ]); ?>
+            </div>
+        </div>
 
     <?php endif; ?>
 
@@ -550,6 +668,76 @@ $this->registerJs("
         </div>
     </div>
 
+    <!-- Modal Ubah Stok (Tambah / Kurang) -->
+    <div class="modal fade" id="modalUbahStok" tabindex="-1" role="dialog" aria-labelledby="modalUbahStokLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header py-3" id="modalUbahStokHeader">
+                    <h5 class="modal-title font-weight-bold" id="modalUbahStokLabel">
+                        <span id="modalUbahStokTitleIcon"></span> <span id="modalUbahStokTitleText">Ubah Stok Barang</span>
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="formUbahStok" method="post" action="">
+                    <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->csrfToken ?>">
+                    <div class="modal-body p-4">
+                        <!-- Ringkasan Info Barang -->
+                        <div class="bg-light p-3 rounded border mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small">Nama Barang:</span>
+                                <strong class="text-dark" id="modalBarangNama">-</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted small">Kode Barang:</span>
+                                <span class="badge badge-light border font-weight-bold" id="modalBarangKode">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Stok Saat Ini:</span>
+                                <span class="badge badge-primary font-weight-bold px-2 py-1" id="modalBarangStok">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Input Jumlah -->
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark mb-1" id="labelModalJumlah">
+                                Jumlah <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-white"><i class="fas fa-boxes text-muted"></i></span>
+                                </div>
+                                <input type="number" name="jumlah" id="modalInputJumlah" class="form-control" value="1" min="1" required style="color: #000 !important; font-weight: bold; font-size: 1.05rem;">
+                            </div>
+                            <small class="form-text text-muted" id="modalJumlahHelp"></small>
+                        </div>
+
+                        <!-- Input Keterangan -->
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold text-dark mb-1">
+                                Keterangan / Catatan Log <span class="text-muted font-weight-normal">(opsional)</span>
+                            </label>
+                            <textarea name="keterangan" id="modalInputKeterangan" class="form-control" rows="2" placeholder="Masukkan alasan untuk dicatat di log..." style="color: #000 !important;"></textarea>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1 text-info"></i> Keterangan ini akan langsung tampil di menu <strong>Log Aktivitas Barang</strong>.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light py-2 px-3 border-top d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i> Batal
+                        </button>
+                        <button type="submit" class="btn font-weight-bold shadow-sm" id="modalBtnSubmit">
+                            <i class="fas fa-check mr-1"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <?php
@@ -620,6 +808,79 @@ $this->registerJs("
             $(this).removeClass('is-hidden');
         });
         $('#noKategoriFound').hide();
+    });
+
+    // Modal Ubah Stok (Tambah / Kurang)
+    $(document).on('click', '.btn-ubah-stok', function(e) {
+        e.preventDefault();
+        var action = $(this).data('action');
+        var nama = $(this).data('nama');
+        var kode = $(this).data('kode');
+        var stok = parseInt($(this).data('stok')) || 0;
+        var url = $(this).data('url');
+
+        $('#formUbahStok').attr('action', url);
+        $('#modalBarangNama').text(nama);
+        $('#modalBarangKode').text(kode);
+        $('#modalBarangStok').text(stok);
+        $('#modalInputJumlah').val(1);
+        $('#modalInputKeterangan').val('');
+
+        if (action === 'plus') {
+            $('#modalUbahStokHeader').removeClass('bg-danger').addClass('bg-success text-white');
+            $('#modalUbahStokTitleIcon').html('<i class=\"fas fa-plus-circle mr-1\"></i>');
+            $('#modalUbahStokTitleText').text('Tambah Stok Barang');
+            $('#labelModalJumlah').html('Jumlah Penambahan Stok <span class=\"text-danger\">*</span>');
+            $('#modalInputJumlah').removeAttr('max');
+            $('#modalJumlahHelp').text('Masukkan jumlah unit stok yang ingin ditambahkan ke sistem.');
+            $('#modalInputKeterangan').attr('placeholder', 'Contoh: Restok dari supplier / Pembelian baru / Barang masuk');
+            $('#modalBtnSubmit').removeClass('btn-danger').addClass('btn-success').html('<i class=\"fas fa-plus-circle mr-1\"></i> Tambah Stok');
+        } else {
+            if (stok <= 0) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stok Kosong',
+                        text: 'Barang ini saat ini memiliki stok 0, tidak dapat dikurangi lagi.',
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    alert('Barang ini memiliki stok 0, tidak dapat dikurangi lagi.');
+                }
+                return;
+            }
+            $('#modalUbahStokHeader').removeClass('bg-success').addClass('bg-danger text-white');
+            $('#modalUbahStokTitleIcon').html('<i class=\"fas fa-minus-circle mr-1\"></i>');
+            $('#modalUbahStokTitleText').text('Kurangi Stok Barang');
+            $('#labelModalJumlah').html('Jumlah Pengurangan Stok <span class=\"text-danger\">*</span>');
+            $('#modalInputJumlah').attr('max', stok);
+            $('#modalJumlahHelp').text('Maksimal pengurangan: ' + stok + ' unit (sesuai sisa stok saat ini).');
+            $('#modalInputKeterangan').attr('placeholder', 'Contoh: Barang rusak / Retur penjualan / Kadaluarsa');
+            $('#modalBtnSubmit').removeClass('btn-success').addClass('btn-danger').html('<i class=\"fas fa-minus-circle mr-1\"></i> Kurangi Stok');
+        }
+
+        $('#modalUbahStok').modal('show');
+        setTimeout(function() {
+            $('#modalInputJumlah').focus().select();
+        }, 300);
+    });
+
+    // Validasi form ubah stok saat submit
+    $('#formUbahStok').on('submit', function(e) {
+        var val = parseInt($('#modalInputJumlah').val()) || 0;
+        var maxAttr = $('#modalInputJumlah').attr('max');
+        var max = maxAttr ? parseInt(maxAttr) : null;
+
+        if (val <= 0) {
+            e.preventDefault();
+            alert('Jumlah perubahan stok harus minimal 1.');
+            return false;
+        }
+        if (max !== null && val > max) {
+            e.preventDefault();
+            alert('Jumlah pengurangan tidak boleh melebihi sisa stok saat ini (' + max + ').');
+            return false;
+        }
     });
 ");
 ?>

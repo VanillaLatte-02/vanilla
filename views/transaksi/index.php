@@ -161,6 +161,15 @@ $formatRupiah = function ($num) {
             <?= GridView::widget([
                 'dataProvider' => $dataProvider,
                 'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle'],
+                'layout' => "{items}\n<div class=\"card-footer bg-white clearfix d-flex flex-wrap justify-content-between align-items-center py-2 px-3\"><div class=\"text-muted small\">{summary}</div><div>{pager}</div></div>",
+                'pager' => [
+                    'options' => ['class' => 'pagination pagination-sm m-0'],
+                    'linkContainerOptions' => ['class' => 'page-item'],
+                    'linkOptions' => ['class' => 'page-link'],
+                    'disabledListItemSubTagOptions' => ['tag' => 'a', 'class' => 'page-link'],
+                    'prevPageLabel' => '&laquo; Sebelumnya',
+                    'nextPageLabel' => 'Berikutnya &raquo;',
+                ],
                 'emptyText' => '<div class="text-center text-muted p-5"><i class="fas fa-receipt fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i><br><h5 class="font-weight-bold">Belum Ada Riwayat Transaksi</h5><p class="small mb-0">Transaksi yang dibuat di kasir (Lunas maupun Draft) akan otomatis tercatat di sini.</p></div>',
                 'columns' => [
                     [
@@ -234,29 +243,27 @@ $formatRupiah = function ($num) {
                     [
                         'header' => 'Aksi',
                         'format' => 'raw',
-                        'headerOptions' => ['style' => 'width: 170px; text-align: center;'],
+                        'headerOptions' => ['style' => 'width: 220px; text-align: center;'],
                         'contentOptions' => ['style' => 'text-align: center;'],
-                        'value' => function ($model) {
+                        'value' => function ($model) use ($formatRupiah) {
                             $btnDetail = '<button type="button" class="btn btn-info btn-sm mr-1 btn-view-detail" data-id="' . $model->id . '" title="Rincian Transaksi">' .
                                          '<i class="fas fa-eye"></i>' .
                                          '</button>';
 
                             if (strtoupper($model->status) === Transaksi::STATUS_DRAFT) {
-                                // Tombol Bayar / Lunasi Draft
-                                $btnBayar = Html::beginForm(['transaksi/bayar-draft', 'id' => $model->id], 'post', ['class' => 'd-inline', 'onsubmit' => 'return confirm("Proses pembayaran dan lunasi transaksi ini? Stok barang akan dikurangi dan dicatat di Log Barang.")']) .
-                                            '<button type="submit" class="btn btn-success btn-sm mr-1" title="Bayar Sekarang (Lunasi)">' .
-                                            '<i class="fas fa-cash-register mr-1"></i> Bayar' .
-                                            '</button>' .
-                                            Html::endForm();
+                                // Tombol Buka / Lanjutkan di Kasir
+                                $btnLanjutKasir = '<a href="' . Url::to(['kasir/index', 'draft_id' => $model->id]) . '" class="btn btn-primary btn-sm mr-1" title="Lanjutkan ke Draft Kasir (Edit/Bayar POS)">' .
+                                                  '<i class="fas fa-shopping-basket mr-1"></i> Ke Kasir' .
+                                                  '</a>';
 
                                 // Tombol Hapus Draft
-                                $btnHapus = Html::beginForm(['transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline', 'onsubmit' => 'return confirm("Yakin ingin menghapus draft transaksi ini?")']) .
-                                            '<button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus Draft">' .
+                                $btnHapus = Html::beginForm(['transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline']) .
+                                            '<button type="button" class="btn btn-outline-danger btn-sm btn-action-hapus" data-nomor="' . Html::encode($model->nomor_transaksi) . '" title="Hapus Draft">' .
                                             '<i class="fas fa-trash-alt"></i>' .
                                             '</button>' .
                                             Html::endForm();
 
-                                return '<div class="btn-group btn-group-sm">' . $btnDetail . $btnBayar . $btnHapus . '</div>';
+                                return '<div class="btn-group btn-group-sm">' . $btnDetail . $btnLanjutKasir . $btnHapus . '</div>';
                             } else {
                                 // Status LUNAS: Cetak Struk
                                 $btnStruk = '<a href="' . Url::to(['transaksi/struk', 'id' => $model->id]) . '" target="_blank" class="btn btn-outline-secondary btn-sm" title="Cetak Struk">' .
@@ -289,7 +296,9 @@ $formatRupiah = function ($num) {
 
 <?php
 $detailUrl = Url::to(['transaksi/detail']);
+$kasirIndexUrl = Url::to(['kasir/index']);
 $this->registerJs("
+    // Tampilkan modal rincian transaksi
     $(document).on('click', '.btn-view-detail', function() {
         var id = $(this).data('id');
         $('#modalDetailTransaksi').modal('show');
@@ -299,6 +308,40 @@ $this->registerJs("
             $('#modalDetailContent').html(res);
         }).fail(function() {
             $('#modalDetailContent').html('<div class=\"p-4 text-center text-danger\"><i class=\"fas fa-exclamation-circle fa-2x mb-2\"></i><p class=\"mb-0\">Gagal memuat rincian transaksi.</p></div>');
+        });
+    });
+
+    // SweetAlert Konfirmasi Aksi Hapus Transaksi (Draft)
+    $(document).on('click', '.btn-action-hapus', function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        var nomor = $(this).data('nomor') || 'Transaksi';
+
+        Swal.fire({
+            title: 'Hapus Transaksi Draft?',
+            html: 'Apakah Anda yakin ingin menghapus draft transaksi <strong class=\"text-danger\">' + nomor + '</strong>?<br>' +
+                  '<span class=\"text-muted small\">Draft ini akan dihapus permanen dari daftar transaksi.</span>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class=\"fas fa-trash-alt mr-1\"></i> Ya, Hapus Draft!',
+            cancelButtonText: '<i class=\"fas fa-times mr-1\"></i> Batal',
+            reverseButtons: true,
+            focusCancel: true
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                $('#modalDetailTransaksi').modal('hide');
+                Swal.fire({
+                    title: 'Menghapus Draft...',
+                    text: 'Mohon tunggu sebentar...',
+                    allowOutsideClick: false,
+                    didOpen: function() {
+                        Swal.showLoading();
+                    }
+                });
+                form.submit();
+            }
         });
     });
 ");

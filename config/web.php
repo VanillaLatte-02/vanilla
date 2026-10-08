@@ -19,6 +19,16 @@ $config = [
             'layout' => 'left-menu',
         ],
     ],
+    'as access' => [
+        'class' => 'mdm\admin\components\AccessControl',
+        'allowActions' => [
+            'site/login',
+            'site/logout',
+            'site/error',
+            'gii/*',
+            'debug/*',
+        ],
+    ],
     'components' => [
         'formatter' => [
             'class' => 'yii\i18n\Formatter',

@@ -10,6 +10,7 @@ use app\models\TransaksiDetail;
 use app\models\LogBarang;
 use yii\web\Controller;
 use yii\web\Response;
+use yii\data\ActiveDataProvider;
 
 class KasirController extends Controller
 {
@@ -45,7 +46,21 @@ class KasirController extends Controller
             $query->andWhere(['kategori_id' => (int) $kategori_id]);
         }
 
-        $barang = $query->all();
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'pagination' => [
+                'pageSize' => 24, // Batasi 24 produk per halaman (di bawah 100)
+                'params' => array_merge($_GET, [
+                    'keyword' => $keyword,
+                    'kategori_id' => $kategori_id,
+                ]),
+            ],
+            'sort' => [
+                'defaultOrder' => ['id' => SORT_DESC],
+            ],
+        ]);
+
+        $barang = $dataProvider->getModels();
 
         $activeKategori = Kategori::find()
             ->where(['is_active' => Kategori::STATUS_ACTIVE])
@@ -71,14 +86,43 @@ class KasirController extends Controller
             $selectedKategori = Kategori::findOne($kategori_id);
         }
 
+        // Muat draft transaksi jika parameter draft_id tersedia
+        $draft_id = Yii::$app->request->get('draft_id');
+        $loadedDraft = null;
+        if (!empty($draft_id)) {
+            $transaksiDraft = Transaksi::findOne((int) $draft_id);
+            if ($transaksiDraft && strtoupper($transaksiDraft->status) === Transaksi::STATUS_DRAFT) {
+                $itemsDraft = [];
+                foreach ($transaksiDraft->details as $item) {
+                    $b = Barang::findOne($item->barang_id);
+                    $itemsDraft[$item->barang_id] = [
+                        'id' => (int) $item->barang_id,
+                        'nama' => $item->nama_barang,
+                        'harga' => (float) $item->harga_satuan,
+                        'stok' => $b ? (int) $b->stok : 0,
+                        'qty' => (int) $item->qty,
+                    ];
+                }
+                $loadedDraft = [
+                    'id' => (int) $transaksiDraft->id,
+                    'nomor_transaksi' => $transaksiDraft->nomor_transaksi,
+                    'nama_pelanggan' => $transaksiDraft->nama_pelanggan,
+                    'metode_pembayaran' => $transaksiDraft->metode_pembayaran,
+                    'items' => $itemsDraft,
+                ];
+            }
+        }
+
         return $this->render('index', [
             'barang' => $barang,
+            'dataProvider' => $dataProvider,
             'keyword' => $keyword,
             'kategori_id' => $kategori_id,
             'activeKategori' => $activeKategori,
             'allKategori' => $allKategori,
             'categoryCounts' => $categoryCounts,
             'selectedKategori' => $selectedKategori,
+            'loadedDraft' => $loadedDraft,
         ]);
     }
 
@@ -161,8 +205,15 @@ class KasirController extends Controller
                 throw new \Exception("Tidak ada item yang valid untuk diproses.");
             }
 
-            $transaksi = new Transaksi();
-            $transaksi->nomor_transaksi = Transaksi::generateNomorTransaksi();
+            $draftId = (int) ($postData['draft_id'] ?? ($postData['transaksi_id'] ?? 0));
+            $transaksi = null;
+            if ($draftId > 0) {
+                $transaksi = Transaksi::findOne($draftId);
+            }
+            if (!$transaksi) {
+                $transaksi = new Transaksi();
+                $transaksi->nomor_transaksi = Transaksi::generateNomorTransaksi();
+            }
             date_default_timezone_set('Asia/Jakarta');
             $transaksi->tanggal = date('Y-m-d H:i:s');
             $transaksi->nama_kasir = $namaKasir;
@@ -177,6 +228,11 @@ class KasirController extends Controller
             if (!$transaksi->save()) {
                 $errors = $transaksi->getFirstErrors();
                 throw new \Exception("Gagal menyimpan transaksi: " . (reset($errors) ?: 'Validasi gagal'));
+            }
+
+            // Jika memperbarui draft yang sudah ada, bersihkan detail lamanya agar tidak tumpuk
+            if ($draftId > 0) {
+                TransaksiDetail::deleteAll(['transaksi_id' => $transaksi->id]);
             }
 
             foreach ($itemsData as $data) {

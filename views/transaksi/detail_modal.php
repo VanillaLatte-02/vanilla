@@ -101,9 +101,12 @@ $formatRupiah = function ($num) {
                 <i class="fas fa-print mr-1"></i> Cetak Struk
             </a>
         <?php elseif (strtoupper($model->status) === Transaksi::STATUS_DRAFT): ?>
-            <?= Html::beginForm(['transaksi/bayar-draft', 'id' => $model->id], 'post', ['class' => 'd-inline', 'onsubmit' => 'return confirm("Proses pembayaran dan lunasi transaksi draft ini? Stok barang akan dikurangi dan dicatat di Log Barang.")']) ?>
-                <button type="submit" class="btn btn-success btn-sm">
-                    <i class="fas fa-cash-register mr-1"></i> Bayar & Lunasi Sekarang
+            <a href="<?= Url::to(['kasir/index', 'draft_id' => $model->id]) ?>" class="btn btn-primary btn-sm mr-1" title="Buka transaksi ini di halaman Kasir">
+                <i class="fas fa-shopping-basket mr-1"></i> Lanjutkan ke Kasir
+            </a>
+            <?= Html::beginForm(['transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline ml-1']) ?>
+                <button type="button" class="btn btn-outline-danger btn-sm btn-action-hapus" data-nomor="<?= Html::encode($model->nomor_transaksi) ?>" title="Hapus Draft">
+                    <i class="fas fa-trash-alt mr-1"></i> Hapus Draft
                 </button>
             <?= Html::endForm() ?>
         <?php endif; ?>

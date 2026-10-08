@@ -18,12 +18,16 @@ use yii\helpers\Url;
 
     <!-- Right navbar links -->
     <ul class="navbar-nav">
-        <li class="nav-item">
-            <?= Html::a('<i class="fas fa-code mr-1"></i> Gii', Url::to(['/gii']), ['class' => 'nav-link']) ?>
-        </li>
-        <li class="nav-item">
-            <?= Html::a('<i class="fas fa-user-shield mr-1"></i> Admin', Url::to(['/admin']), ['class' => 'nav-link']) ?>
-        </li>
+        <?php if (\mdm\admin\components\Helper::checkRoute('/gii/index') || \mdm\admin\components\Helper::checkRoute('/gii/*')): ?>
+            <li class="nav-item">
+                <?= Html::a('<i class="fas fa-code mr-1"></i> Gii', Url::to(['/gii']), ['class' => 'nav-link']) ?>
+            </li>
+        <?php endif; ?>
+        <?php if (\mdm\admin\components\Helper::checkRoute('/admin/default/index') || \mdm\admin\components\Helper::checkRoute('/admin/*')): ?>
+            <li class="nav-item">
+                <?= Html::a('<i class="fas fa-user-shield mr-1"></i> Admin (RBAC)', Url::to(['/admin']), ['class' => 'nav-link']) ?>
+            </li>
+        <?php endif; ?>
     </ul>
     <ul class="navbar-nav ml-auto" style="padding-left: 15px; padding-right: 15px; border-left: 1px solid #dee2e6;">
         <!-- Widget Notifikasi -->
@@ -97,7 +101,10 @@ use yii\helpers\Url;
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <?= Html::a('<i class="fas fa-id-card mr-2"></i> Profile Page', ['site/profile'], ['class' => 'dropdown-item']) ?>
+                <?= Html::a('<i class="fas fa-id-card mr-2"></i> Profile Akun', Yii::$app->user->isGuest ? ['site/login'] : ['user/view', 'id' => Yii::$app->user->id], ['class' => 'dropdown-item']) ?>
+                <?php if (\mdm\admin\components\Helper::checkRoute('/user/index')): ?>
+                    <?= Html::a('<i class="fas fa-users-cog mr-2"></i> Manajemen User', ['user/index'], ['class' => 'dropdown-item']) ?>
+                <?php endif; ?>
                 <?php if (Yii::$app->user->isGuest): ?>
                     <?= Html::a('<i class="fas fa-sign-in-alt mr-2"></i> Login', ['site/login'], ['class' => 'dropdown-item']) ?>
                 <?php else: ?>

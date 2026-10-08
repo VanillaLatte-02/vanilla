@@ -8,6 +8,7 @@ use app\models\LogBarang;
 use yii\web\Controller;
 use yii\web\UploadedFile;
 use yii\web\NotFoundHttpException;
+use yii\data\ActiveDataProvider;
 
 class BarangController extends Controller
 {
@@ -27,7 +28,22 @@ class BarangController extends Controller
             $query->andWhere(['kategori_id' => (int) $kategori_id]);
         }
 
-        $barang = $query->all();
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+            'pagination' => [
+                'pageSize' => 20,
+                'params' => array_merge($_GET, [
+                    'view' => $view,
+                    'keyword' => $keyword,
+                    'kategori_id' => $kategori_id,
+                ]),
+            ],
+            'sort' => [
+                'defaultOrder' => ['id' => SORT_DESC],
+            ],
+        ]);
+
+        $barang = $dataProvider->getModels();
 
         $activeKategori = \app\models\Kategori::find()
             ->where(['is_active' => \app\models\Kategori::STATUS_ACTIVE])
@@ -55,6 +71,7 @@ class BarangController extends Controller
 
         return $this->render('index', [
             'barang' => $barang,
+            'dataProvider' => $dataProvider,
             'view' => $view,
             'keyword' => $keyword,
             'kategori_id' => $kategori_id,
@@ -132,14 +149,25 @@ class BarangController extends Controller
     {
         $model = Barang::findOne($id);
         if ($model) {
+            $jumlah = (int) Yii::$app->request->post('jumlah', 1);
+            if ($jumlah <= 0) {
+                Yii::$app->session->setFlash('error', 'Jumlah penambahan harus lebih dari 0.');
+                return $this->redirect(Yii::$app->request->referrer ?: ['index']);
+            }
+            $keteranganUser = trim(Yii::$app->request->post('keterangan', ''));
             $stokSebelum = (int) $model->stok;
-            $model->stok += 1;
+            $model->stok += $jumlah;
             if ($model->save(false)) {
+                $ket = !empty($keteranganUser)
+                    ? $keteranganUser . " (Stok: {$stokSebelum} -> {$model->stok})"
+                    : "Penambahan stok (+{$jumlah}): {$stokSebelum} -> {$model->stok}";
+
                 LogBarang::record($model, 'penambahan stok', [
                     'stok_sebelum' => $stokSebelum,
                     'stok_sesudah' => (int) $model->stok,
-                    'keterangan' => "Penambahan stok (+1): {$stokSebelum} -> {$model->stok}",
+                    'keterangan' => $ket,
                 ]);
+                Yii::$app->session->setFlash('success', "Stok barang \"{$model->nama_barang}\" berhasil ditambah {$jumlah}.");
             }
         }
         return $this->redirect(Yii::$app->request->referrer ?: ['index']);
@@ -148,15 +176,30 @@ class BarangController extends Controller
     public function actionMinusStok($id)
     {
         $model = Barang::findOne($id);
-        if ($model && $model->stok > 0) {
+        if ($model) {
+            $jumlah = (int) Yii::$app->request->post('jumlah', 1);
+            if ($jumlah <= 0) {
+                Yii::$app->session->setFlash('error', 'Jumlah pengurangan harus lebih dari 0.');
+                return $this->redirect(Yii::$app->request->referrer ?: ['index']);
+            }
+            if ($jumlah > $model->stok) {
+                Yii::$app->session->setFlash('error', "Jumlah pengurangan ({$jumlah}) melebihi sisa stok saat ini ({$model->stok}).");
+                return $this->redirect(Yii::$app->request->referrer ?: ['index']);
+            }
+            $keteranganUser = trim(Yii::$app->request->post('keterangan', ''));
             $stokSebelum = (int) $model->stok;
-            $model->stok -= 1;
+            $model->stok -= $jumlah;
             if ($model->save(false)) {
+                $ket = !empty($keteranganUser)
+                    ? $keteranganUser . " (Stok: {$stokSebelum} -> {$model->stok})"
+                    : "Pengurangan stok (-{$jumlah}): {$stokSebelum} -> {$model->stok}";
+
                 LogBarang::record($model, 'pengurangan stok', [
                     'stok_sebelum' => $stokSebelum,
                     'stok_sesudah' => (int) $model->stok,
-                    'keterangan' => "Pengurangan stok (-1): {$stokSebelum} -> {$model->stok}",
+                    'keterangan' => $ket,
                 ]);
+                Yii::$app->session->setFlash('success', "Stok barang \"{$model->nama_barang}\" berhasil dikurangi {$jumlah}.");
             }
         }
         return $this->redirect(Yii::$app->request->referrer ?: ['index']);
