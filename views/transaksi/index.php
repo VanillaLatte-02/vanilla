@@ -22,6 +22,18 @@ $formatRupiah = function ($num) {
     return 'Rp ' . number_format($num, 0, ',', '.');
 };
 ?>
+<style>
+    .clickable-row {
+        cursor: pointer;
+    }
+    .table-clickable tbody tr.clickable-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    .table-clickable tbody tr.clickable-row:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
+    }
+</style>
 <div class="transaksi-index">
 
     <?php if (Yii::$app->session->hasFlash('success')): ?>
@@ -160,7 +172,13 @@ $formatRupiah = function ($num) {
         <div class="card-body p-0 table-responsive">
             <?= GridView::widget([
                 'dataProvider' => $dataProvider,
-                'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle'],
+                'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle table-clickable'],
+                'rowOptions' => function ($model, $key, $index, $grid) {
+                    return [
+                        'class' => 'clickable-row',
+                        'data-href' => Url::to(['transaksi/detail', 'id' => $model->id]),
+                    ];
+                },
                 'layout' => "{items}\n<div class=\"card-footer bg-white clearfix d-flex flex-wrap justify-content-between align-items-center py-2 px-3\"><div class=\"text-muted small\">{summary}</div><div>{pager}</div></div>",
                 'pager' => [
                     'options' => ['class' => 'pagination pagination-sm m-0'],
@@ -246,9 +264,10 @@ $formatRupiah = function ($num) {
                         'headerOptions' => ['style' => 'width: 220px; text-align: center;'],
                         'contentOptions' => ['style' => 'text-align: center;'],
                         'value' => function ($model) use ($formatRupiah) {
-                            $btnDetail = '<button type="button" class="btn btn-info btn-sm mr-1 btn-view-detail" data-id="' . $model->id . '" title="Rincian Transaksi">' .
-                                         '<i class="fas fa-eye"></i>' .
-                                         '</button>';
+                            $btnDetail = Html::a('<i class="fas fa-eye"></i>', ['transaksi/detail', 'id' => $model->id], [
+                                'class' => 'btn btn-info btn-sm mr-1',
+                                'title' => 'Rincian Transaksi',
+                            ]);
 
                             if (strtoupper($model->status) === Transaksi::STATUS_DRAFT) {
                                 // Tombol Buka / Lanjutkan di Kasir
@@ -279,36 +298,28 @@ $formatRupiah = function ($num) {
         </div>
     </div>
 
-    <!-- Modal Popup Detail Transaksi -->
-    <div class="modal fade" id="modalDetailTransaksi" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-            <div class="modal-content shadow border-0" id="modalDetailContent">
-                <!-- Diisi via AJAX -->
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="text-muted mt-2 mb-0">Memuat rincian transaksi...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <?php
-$detailUrl = Url::to(['transaksi/detail']);
-$kasirIndexUrl = Url::to(['kasir/index']);
 $this->registerJs("
-    // Tampilkan modal rincian transaksi
-    $(document).on('click', '.btn-view-detail', function() {
-        var id = $(this).data('id');
-        $('#modalDetailTransaksi').modal('show');
-        $('#modalDetailContent').html('<div class=\"text-center py-5\"><div class=\"spinner-border text-primary\" role=\"status\"></div><p class=\"text-muted mt-2 mb-0\">Memuat rincian transaksi...</p></div>');
-
-        $.get('{$detailUrl}', { id: id }, function(res) {
-            $('#modalDetailContent').html(res);
-        }).fail(function() {
-            $('#modalDetailContent').html('<div class=\"p-4 text-center text-danger\"><i class=\"fas fa-exclamation-circle fa-2x mb-2\"></i><p class=\"mb-0\">Gagal memuat rincian transaksi.</p></div>');
-        });
+    // Klik baris tabel transaksi untuk diarahkan ke halaman detail
+    $(document).on('click', '.clickable-row', function(e) {
+        // Jangan redirect jika user mengklik tombol, link, atau form control
+        if ($(e.target).closest('a, button, input, select, textarea, .btn, .btn-group').length) {
+            return;
+        }
+        // Jangan redirect jika user sedang memilih/menyeleksi teks
+        if (window.getSelection && window.getSelection().toString().trim().length > 0) {
+            return;
+        }
+        var href = $(this).data('href');
+        if (href) {
+            if (e.ctrlKey || e.metaKey || e.which === 2) {
+                window.open(href, '_blank');
+            } else {
+                window.location.href = href;
+            }
+        }
     });
 
     // SweetAlert Konfirmasi Aksi Hapus Transaksi (Draft)
@@ -331,7 +342,6 @@ $this->registerJs("
             focusCancel: true
         }).then(function(result) {
             if (result.isConfirmed) {
-                $('#modalDetailTransaksi').modal('hide');
                 Swal.fire({
                     title: 'Menghapus Draft...',
                     text: 'Mohon tunggu sebentar...',

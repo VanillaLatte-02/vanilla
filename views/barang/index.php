@@ -59,10 +59,21 @@ $this->registerJs("
     .barang-product-card {
         transition: transform 0.15s ease, box-shadow 0.15s ease;
         border-radius: 8px;
+        cursor: pointer;
     }
     .barang-product-card:hover {
         transform: translateY(-3px);
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+    }
+    .clickable-row {
+        cursor: pointer;
+    }
+    .table-clickable tbody tr.clickable-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    .table-clickable tbody tr.clickable-row:hover {
+        background-color: rgba(0, 123, 255, 0.05) !important;
     }
 </style>
 <div class="barang-index">
@@ -253,7 +264,7 @@ $this->registerJs("
             <?php else: ?>
                 <?php foreach ($barang as $item): ?>
                     <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-3">
-                        <div class="card h-100 shadow-sm border-0 barang-product-card">
+                        <div class="card h-100 shadow-sm border-0 barang-product-card clickable-card" data-href="<?= Url::to(['barang/detail', 'id' => $item->id]) ?>">
                             <!-- Gambar Produk & Overlay Stok Mirip Kasir -->
                             <div class="text-center p-2 bg-light border-bottom position-relative" style="height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px 8px 0 0;">
                                 <?php if ($item->getGambarUrl()): ?>
@@ -397,7 +408,13 @@ $this->registerJs("
             <div class="card-body p-0 table-responsive">
                 <?= GridView::widget([
                     'dataProvider' => $dataProvider,
-                    'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle'],
+                    'tableOptions' => ['class' => 'table table-hover table-striped mb-0 text-nowrap align-middle table-clickable'],
+                    'rowOptions' => function ($model, $key, $index, $grid) {
+                        return [
+                            'class' => 'clickable-row',
+                            'data-href' => Url::to(['barang/detail', 'id' => $model->id]),
+                        ];
+                    },
                     'layout' => "{items}\n<div class=\"card-footer bg-white clearfix d-flex flex-wrap justify-content-between align-items-center py-2 px-3\"><div class=\"text-muted small\">{summary}</div><div>{pager}</div></div>",
                     'pager' => [
                         'options' => ['class' => 'pagination pagination-sm m-0'],
@@ -742,6 +759,24 @@ $this->registerJs("
 
 <?php
 $this->registerJs("
+    // Klik baris tabel barang atau kartu grid untuk membuka detail barang
+    $(document).on('click', '.clickable-row, .clickable-card', function(e) {
+        if ($(e.target).closest('a, button, input, select, textarea, .btn, .btn-group').length) {
+            return;
+        }
+        if (window.getSelection && window.getSelection().toString().trim().length > 0) {
+            return;
+        }
+        var href = $(this).data('href');
+        if (href) {
+            if (e.ctrlKey || e.metaKey || e.which === 2) {
+                window.open(href, '_blank');
+            } else {
+                window.location.href = href;
+            }
+        }
+    });
+
     // Focus search input saat modal terbuka
     $('#modalSemuaKategori').on('shown.bs.modal', function () {
         $('#searchKategoriModal').val('').trigger('input');

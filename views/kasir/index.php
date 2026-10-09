@@ -149,38 +149,77 @@ $this->registerJs("
     #btnClearDraftFab.is-empty {
         opacity: 0.55;
     }
-    /* Numpad Touch Modal Pembayaran */
+    /* Numpad Touch Modal Pembayaran (Compact) */
     .pos-numpad-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
+        gap: 4px;
     }
     .pos-numpad-grid .btn-numpad {
-        padding: 10px 4px;
-        font-size: 1.1rem;
-        border-radius: 6px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        padding: 6px 3px;
+        font-size: 0.95rem;
+        line-height: 1.2;
+        border-radius: 5px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         transition: transform 0.08s ease, background-color 0.1s ease;
     }
     .pos-numpad-grid .btn-numpad:active {
         transform: scale(0.95);
     }
-    /* Modal Zoom / Preview QRIS & Transfer di Atas Modal Pembayaran */
+    /* Modal Pembayaran Kasir (Non-Scrollable Modal, Mudah Dinavigasikan) */
     #modalPembayaranKasir {
         z-index: 1050 !important;
+        overflow-y: hidden !important;
     }
+    #modalPembayaranKasir .modal-dialog {
+        max-height: calc(100vh - 20px);
+        margin: 10px auto !important;
+    }
+    #modalPembayaranKasir .modal-content {
+        max-height: calc(100vh - 20px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden !important;
+    }
+    #modalPembayaranKasir .modal-body {
+        overflow-y: hidden !important;
+        padding: 0.75rem 1.25rem !important;
+    }
+    /* Rincian Pesanan Tetap Scrollable di Dalam Modal */
+    .rincian-pesanan-scroll {
+        max-height: 175px;
+        overflow-y: auto;
+    }
+    .rincian-pesanan-scroll::-webkit-scrollbar {
+        width: 5px;
+    }
+    .rincian-pesanan-scroll::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+    /* Modal Zoom / Preview QRIS & Transfer - Non-Scrollable */
     #modalImagePreviewPayment {
         z-index: 1070 !important;
-        background: rgba(0, 0, 0, 0.72) !important;
-        overflow-y: auto !important;
+        background: rgba(0, 0, 0, 0.75) !important;
+        overflow-y: hidden !important;
     }
     #modalImagePreviewPayment .modal-dialog {
         z-index: 1071 !important;
-        margin-top: 2rem;
-        margin-bottom: 2rem;
+        max-height: calc(100vh - 20px);
+        margin: 10px auto !important;
+    }
+    #modalImagePreviewPayment .modal-content {
+        max-height: calc(100vh - 20px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden !important;
+    }
+    #modalImagePreviewPayment .modal-body {
+        padding: 0.65rem 1rem !important;
+        overflow-y: hidden !important;
     }
     #previewModalImage {
-        max-height: 55vh;
+        max-height: 50vh;
         width: auto;
         max-width: 100%;
         object-fit: contain;
@@ -681,13 +720,13 @@ $this->registerJs("
         <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
             <div class="modal-content shadow-lg border-0">
                 <!-- Header Modal -->
-                <div class="modal-header bg-dark text-white py-3">
+                <div class="modal-header bg-dark text-white py-2 px-3">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-warning p-2 mr-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                            <i class="fas fa-cash-register text-dark fa-lg"></i>
+                        <div class="rounded-circle bg-warning p-1 mr-2 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                            <i class="fas fa-cash-register text-dark"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title font-weight-bold mb-0" id="modalPembayaranKasirLabel">
+                            <h5 class="modal-title font-weight-bold mb-0" id="modalPembayaranKasirLabel" style="font-size: 1.15rem;">
                                 Pembayaran Kasir
                             </h5>
                             <small class="text-light" style="opacity: 0.85;">Konfirmasi rincian pesanan dan selesaikan transaksi</small>
@@ -699,12 +738,12 @@ $this->registerJs("
                 </div>
 
                 <!-- Body Modal: 2 Kolom (Kiri: Summary & Detail, Kanan: Metode Bayar) -->
-                <div class="modal-body p-3 p-md-4">
+                <div class="modal-body p-2 p-md-3">
                     <div class="row">
                         <!-- Kolom Kiri: Summary Transaksi & Detail Belanja -->
-                        <div class="col-lg-5 col-md-12 border-right pr-lg-4 mb-3 mb-lg-0">
-                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                                <h6 class="font-weight-bold text-dark mb-0">
+                        <div class="col-lg-5 col-md-12 border-right pr-lg-3 mb-2 mb-lg-0">
+                            <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                                <h6 class="font-weight-bold text-dark mb-0" style="font-size: 0.95rem;">
                                     <i class="fas fa-receipt text-primary mr-1"></i> Rincian Pesanan
                                 </h6>
                                 <span class="badge badge-light border text-dark font-weight-bold" id="payModalBadgeItemCount">
@@ -713,7 +752,7 @@ $this->registerJs("
                             </div>
 
                             <!-- Info Kasir, Pelanggan, Waktu -->
-                            <div class="bg-light rounded p-2 mb-3 border small">
+                            <div class="bg-light rounded p-2 mb-2 border small">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span class="text-muted"><i class="fas fa-user-tie mr-1"></i> Kasir:</span>
                                     <strong class="text-dark"><?= Yii::$app->user->isGuest ? 'Kasir 1' : Yii::$app->user->identity->username ?></strong>
@@ -730,7 +769,7 @@ $this->registerJs("
 
                             <!-- Daftar Item Belanja (Scrollable) -->
                             <label class="font-weight-bold small text-muted mb-1">Daftar Barang Belanja:</label>
-                            <div class="border rounded bg-white p-0 mb-3" style="max-height: 230px; overflow-y: auto;">
+                            <div class="border rounded bg-white p-0 mb-2 rincian-pesanan-scroll" style="max-height: 175px; overflow-y: auto;">
                                 <table class="table table-sm table-striped mb-0 small">
                                     <thead class="thead-light">
                                         <tr>
@@ -747,59 +786,59 @@ $this->registerJs("
                             </div>
 
                             <!-- Ringkasan Total Tagihan -->
-                            <div class="card border-0 bg-light p-3">
+                            <div class="card border-0 bg-light p-2 mb-0">
                                 <div class="d-flex justify-content-between text-muted small mb-1">
                                     <span>Subtotal:</span>
                                     <strong class="text-dark" id="payModalSubtotalText">Rp 0</strong>
                                 </div>
-                                <div class="d-flex justify-content-between text-muted small mb-2">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
                                     <span>Diskon:</span>
                                     <strong class="text-success">Rp 0</strong>
                                 </div>
                                 <hr class="my-1">
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <span class="font-weight-bold text-dark" style="font-size: 1.1rem;">Total Tagihan:</span>
-                                    <h3 class="font-weight-bold text-success mb-0" id="payModalGrandTotalText">Rp 0</h3>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="font-weight-bold text-dark" style="font-size: 1rem;">Total Tagihan:</span>
+                                    <h4 class="font-weight-bold text-success mb-0" id="payModalGrandTotalText">Rp 0</h4>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Kolom Kanan: Pilihan Metode Pembayaran & Konten -->
-                        <div class="col-lg-7 col-md-12 pl-lg-4">
-                            <h6 class="font-weight-bold text-dark mb-2 pb-2 border-bottom">
+                        <div class="col-lg-7 col-md-12 pl-lg-3">
+                            <h6 class="font-weight-bold text-dark mb-2 pb-1 border-bottom" style="font-size: 0.95rem;">
                                 <i class="fas fa-wallet text-primary mr-1"></i> Pilih Metode Pembayaran
                             </h6>
 
                             <!-- Tabs / Selector Pilihan Metode Pembayaran -->
-                            <div class="btn-group btn-group-toggle w-100 mb-3 shadow-sm" data-toggle="buttons" id="payMethodGroup">
-                                <label class="btn btn-outline-primary active py-2 font-weight-bold" id="btnTabCash" style="border-width: 2px;">
+                            <div class="btn-group btn-group-toggle w-100 mb-2 shadow-sm" data-toggle="buttons" id="payMethodGroup">
+                                <label class="btn btn-outline-primary active py-1 font-weight-bold" id="btnTabCash" style="border-width: 2px;">
                                     <input type="radio" name="modal_payment_method" value="TUNAI" checked>
-                                    <i class="fas fa-money-bill-wave fa-lg d-block mb-1"></i> Tunai (Cash)
+                                    <i class="fas fa-money-bill-wave mr-1"></i> Tunai (Cash)
                                 </label>
-                                <label class="btn btn-outline-primary py-2 font-weight-bold" id="btnTabQris" style="border-width: 2px;">
+                                <label class="btn btn-outline-primary py-1 font-weight-bold" id="btnTabQris" style="border-width: 2px;">
                                     <input type="radio" name="modal_payment_method" value="QRIS">
-                                    <i class="fas fa-qrcode fa-lg d-block mb-1"></i> QRIS
+                                    <i class="fas fa-qrcode mr-1"></i> QRIS
                                 </label>
-                                <label class="btn btn-outline-primary py-2 font-weight-bold" id="btnTabTransfer" style="border-width: 2px;">
+                                <label class="btn btn-outline-primary py-1 font-weight-bold" id="btnTabTransfer" style="border-width: 2px;">
                                     <input type="radio" name="modal_payment_method" value="TRANSFER">
-                                    <i class="fas fa-university fa-lg d-block mb-1"></i> Transfer Bank
+                                    <i class="fas fa-university mr-1"></i> Transfer Bank
                                 </label>
                             </div>
 
                             <!-- Panel 1: Pembayaran TUNAI / CASH -->
                             <div id="panelPayCash">
-                                <div class="card border mb-3 shadow-sm">
-                                    <div class="card-body p-3">
+                                <div class="card border mb-0 shadow-sm">
+                                    <div class="card-body p-2">
                                         <!-- Input Uang Diterima -->
-                                        <div class="form-group mb-2">
+                                        <div class="form-group mb-1">
                                             <label class="font-weight-bold text-dark small mb-1">
                                                 <i class="fas fa-hand-holding-usd text-success mr-1"></i> Nominal Uang Diterima:
                                             </label>
-                                            <div class="input-group input-group-lg">
+                                            <div class="input-group">
                                                 <div class="input-group-prepend">
                                                     <span class="input-group-text bg-white font-weight-bold text-dark">Rp</span>
                                                 </div>
-                                                <input type="text" id="payCashInput" class="form-control form-control-lg font-weight-bold text-right text-dark" placeholder="0" autocomplete="off" style="font-size: 1.5rem; letter-spacing: 0.5px;">
+                                                <input type="text" id="payCashInput" class="form-control font-weight-bold text-right text-dark" placeholder="0" autocomplete="off" style="font-size: 1.25rem; letter-spacing: 0.5px;">
                                                 <div class="input-group-append">
                                                     <button type="button" class="btn btn-outline-secondary" id="btnPayCashReset" title="Hapus Nominal">
                                                         <i class="fas fa-times"></i>
@@ -809,32 +848,31 @@ $this->registerJs("
                                         </div>
 
                                         <!-- Box Display Uang Kembali / Kekurangan -->
-                                        <div id="payCashChangeBox" class="p-2 rounded mb-3 d-flex justify-content-between align-items-center" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
+                                        <div id="payCashChangeBox" class="p-1 px-2 rounded mb-2 d-flex justify-content-between align-items-center" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
                                             <div>
-                                                <small class="text-muted d-block font-weight-bold" id="payCashChangeTitle">UANG KEMBALIAN</small>
-                                                <span id="payCashChangeBadge" class="badge badge-success px-2 py-1 font-weight-bold">Lunas</span>
+                                                <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;" id="payCashChangeTitle">UANG KEMBALIAN</small>
+                                                <span id="payCashChangeBadge" class="badge badge-success px-2 py-0 font-weight-bold">Lunas</span>
                                             </div>
-                                            <h3 class="font-weight-bold text-success mb-0" id="payCashChangeValue">Rp 0</h3>
+                                            <h4 class="font-weight-bold text-success mb-0" id="payCashChangeValue">Rp 0</h4>
                                         </div>
 
                                         <!-- Quick Cash Buttons (Pecahan Rupiah & Uang Pas) -->
-                                        <div class="mb-2">
-                                            <small class="text-muted font-weight-bold d-block mb-1">Nominal Cepat:</small>
-                                            <div class="d-flex flex-wrap" style="gap: 6px;">
-                                                <button type="button" class="btn btn-sm btn-outline-primary btn-quick-cash font-weight-bold px-2" data-action="exact">
+                                        <div class="mb-1">
+                                            <small class="text-muted font-weight-bold d-block mb-1" style="font-size: 0.78rem;">Nominal Cepat:</small>
+                                            <div class="d-flex flex-wrap" style="gap: 5px;">
+                                                <button type="button" class="btn btn-sm btn-outline-primary btn-quick-cash font-weight-bold px-2 py-0" data-action="exact">
                                                     <i class="fas fa-check-circle mr-1"></i> Uang Pas
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="10000">10.000</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="20000">20.000</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="50000">50.000</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="100000">100.000</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold" data-amount="200000">200.000</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold py-0 px-2" data-amount="10000">10k</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold py-0 px-2" data-amount="20000">20k</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold py-0 px-2" data-amount="50000">50k</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold py-0 px-2" data-amount="100000">100k</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-quick-cash font-weight-bold py-0 px-2" data-amount="200000">200k</button>
                                             </div>
                                         </div>
 
                                         <!-- Keyboard Custom / Numpad Touch Kasir -->
-                                        <div class="mt-2">
-                                            <small class="text-muted font-weight-bold d-block mb-1">Keyboard Numpad:</small>
+                                        <div class="mt-1">
                                             <div class="pos-numpad-grid">
                                                 <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="7">7</button>
                                                 <button type="button" class="btn btn-light btn-numpad font-weight-bold border" data-key="8">8</button>
@@ -865,31 +903,31 @@ $this->registerJs("
 
                             <!-- Panel 2: Pembayaran QRIS -->
                             <div id="panelPayQris" style="display: none;">
-                                <div class="card border mb-3 shadow-sm text-center">
-                                    <div class="card-body p-3">
-                                        <div class="mb-2">
-                                            <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 0.85rem;">
+                                <div class="card border mb-0 shadow-sm text-center">
+                                    <div class="card-body p-2 d-flex flex-column align-items-center">
+                                        <div class="mb-1">
+                                            <span class="badge badge-primary px-3 py-1 font-weight-bold" style="font-size: 0.8rem;">
                                                 <i class="fas fa-qrcode mr-1"></i> Scan QRIS
                                             </span>
                                         </div>
-                                        <div class="p-2 bg-white rounded border d-inline-block shadow-sm mb-2 btn-show-large-preview" data-type="qris" style="max-width: 280px; cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
+                                        <div class="p-1 bg-white rounded border d-inline-block shadow-sm mb-1 btn-show-large-preview" data-type="qris" style="cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
                                             <?= Html::img(Url::to('@web/images/local/qris.jpg'), [
                                                 'class' => 'img-fluid rounded',
-                                                'style' => 'max-height: 250px; width: auto; object-fit: contain;',
+                                                'style' => 'max-height: 160px; width: auto; object-fit: contain;',
                                                 'alt' => 'Gambar QRIS Kasir'
                                             ]) ?>
-                                            <div class="small text-primary font-weight-bold mt-1">
+                                            <div class="small text-primary font-weight-bold mt-1" style="font-size: 0.78rem;">
                                                 <i class="fas fa-search-plus mr-1"></i> Klik untuk Perbesar
                                             </div>
                                         </div>
-                                        <div class="alert alert-light border py-2 px-3 mx-auto mb-2" style="max-width: 420px;">
-                                            <small class="text-muted d-block">Total yang harus dibayar:</small>
-                                            <h4 class="font-weight-bold text-primary mb-1" id="payQrisAmountText">Rp 0</h4>
-                                            <small class="text-muted"><i class="fas fa-mobile-alt mr-1"></i> Buka GoPay, OVO, Dana, ShopeePay, BCA, atau m-Banking dan scan kode QR di atas.</small>
+                                        <div class="alert alert-light border py-1 px-3 mx-auto mb-2 w-100" style="max-width: 380px;">
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Total yang harus dibayar:</small>
+                                            <h4 class="font-weight-bold text-primary mb-0" id="payQrisAmountText">Rp 0</h4>
+                                            <small class="text-muted" style="font-size: 0.72rem;"><i class="fas fa-mobile-alt mr-1"></i> Scan dengan GoPay, OVO, Dana, ShopeePay, m-Banking.</small>
                                         </div>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold btn-show-large-preview" data-type="qris">
-                                                <i class="fas fa-expand-alt mr-1"></i> Buka Tampilan Layar Penuh (Zoom QRIS)
+                                            <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold btn-show-large-preview py-1" data-type="qris">
+                                                <i class="fas fa-expand-alt mr-1"></i> Layar Penuh (Zoom QRIS)
                                             </button>
                                         </div>
                                     </div>
@@ -898,31 +936,31 @@ $this->registerJs("
 
                             <!-- Panel 3: Pembayaran TRANSFER BANK -->
                             <div id="panelPayTransfer" style="display: none;">
-                                <div class="card border mb-3 shadow-sm text-center">
-                                    <div class="card-body p-3">
-                                        <div class="mb-2">
-                                            <span class="badge badge-info px-3 py-1 font-weight-bold text-white" style="font-size: 0.85rem;">
+                                <div class="card border mb-0 shadow-sm text-center">
+                                    <div class="card-body p-2 d-flex flex-column align-items-center">
+                                        <div class="mb-1">
+                                            <span class="badge badge-info px-3 py-1 font-weight-bold text-white" style="font-size: 0.8rem;">
                                                 <i class="fas fa-university mr-1"></i> Transfer Rekening Bank
                                             </span>
                                         </div>
-                                        <div class="p-2 bg-white rounded border d-inline-block shadow-sm mb-2 btn-show-large-preview" data-type="transfer" style="max-width: 320px; cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
+                                        <div class="p-1 bg-white rounded border d-inline-block shadow-sm mb-1 btn-show-large-preview" data-type="transfer" style="cursor: pointer;" title="Klik untuk melihat gambar lebih besar">
                                             <?= Html::img(Url::to('@web/images/local/transfer.jpg'), [
                                                 'class' => 'img-fluid rounded',
-                                                'style' => 'max-height: 250px; width: auto; object-fit: contain;',
+                                                'style' => 'max-height: 160px; width: auto; object-fit: contain;',
                                                 'alt' => 'Gambar Rekening Transfer'
                                             ]) ?>
-                                            <div class="small text-info font-weight-bold mt-1">
+                                            <div class="small text-info font-weight-bold mt-1" style="font-size: 0.78rem;">
                                                 <i class="fas fa-search-plus mr-1"></i> Klik untuk Perbesar
                                             </div>
                                         </div>
-                                        <div class="alert alert-light border py-2 px-3 mx-auto mb-2" style="max-width: 420px;">
-                                            <small class="text-muted d-block">Nominal Transfer:</small>
-                                            <h4 class="font-weight-bold text-info mb-1" id="payTransferAmountText">Rp 0</h4>
-                                            <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> Transfer tepat sesuai nominal tagihan dan pastikan bukti transfer telah terverifikasi.</small>
+                                        <div class="alert alert-light border py-1 px-3 mx-auto mb-2 w-100" style="max-width: 380px;">
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Nominal Transfer:</small>
+                                            <h4 class="font-weight-bold text-info mb-0" id="payTransferAmountText">Rp 0</h4>
+                                            <small class="text-muted" style="font-size: 0.72rem;"><i class="fas fa-info-circle mr-1"></i> Transfer tepat sesuai nominal tagihan.</small>
                                         </div>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-outline-info font-weight-bold btn-show-large-preview" data-type="transfer">
-                                                <i class="fas fa-expand-alt mr-1"></i> Buka Tampilan Layar Penuh (Zoom Rekening)
+                                            <button type="button" class="btn btn-sm btn-outline-info font-weight-bold btn-show-large-preview py-1" data-type="transfer">
+                                                <i class="fas fa-expand-alt mr-1"></i> Layar Penuh (Zoom Rekening)
                                             </button>
                                         </div>
                                     </div>
@@ -935,16 +973,17 @@ $this->registerJs("
 
                 <!-- Footer Modal -->
                 <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">
+                    <button type="button" class="btn btn-secondary font-weight-bold btn-sm" data-dismiss="modal">
                         <i class="fas fa-arrow-left mr-1"></i> Batal / Kembali ke Draft
                     </button>
                     <div class="d-flex align-items-center">
-                        <button type="button" class="btn btn-success btn-lg font-weight-bold shadow px-4" id="btnFinishPaymentSubmit">
+                        <button type="button" class="btn btn-success font-weight-bold shadow px-4" id="btnFinishPaymentSubmit">
                             <i class="fas fa-check-circle mr-1"></i> Selesaikan Pembayaran
                         </button>
                     </div>
                 </div>
             </div>
+        </div>
     </div>
 
     <!-- Modal Preview Gambar QRIS & Transfer di Atas Modal Pembayaran -->
@@ -952,13 +991,13 @@ $this->registerJs("
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                 <!-- Header -->
-                <div class="modal-header bg-dark text-white py-3">
+                <div class="modal-header bg-dark text-white py-2 px-3">
                     <div class="d-flex align-items-center">
                         <span id="previewModalIcon" class="mr-2 fa-lg">
                             <i class="fas fa-qrcode text-warning"></i>
                         </span>
                         <div>
-                            <h5 class="modal-title font-weight-bold mb-0" id="modalImagePreviewPaymentLabel">
+                            <h5 class="modal-title font-weight-bold mb-0" id="modalImagePreviewPaymentLabel" style="font-size: 1.15rem;">
                                 Preview Pembayaran
                             </h5>
                             <small class="text-light" style="opacity: 0.85;" id="previewModalSubtitle">Scan atau Transfer sesuai nominal tagihan</small>
@@ -969,27 +1008,29 @@ $this->registerJs("
                     </button>
                 </div>
 
-                <!-- Body: Gambar Jelas & Besar -->
-                <div class="modal-body p-3 p-md-4 text-center bg-white">
+                <!-- Body: Gambar Jelas & Besar (Non-Scrollable) -->
+                <div class="modal-body p-2 text-center bg-white">
                     <!-- Banner Total Tagihan -->
-                    <div class="alert alert-light border shadow-sm py-2 px-3 mx-auto mb-3" style="max-width: 480px;">
-                        <small class="text-muted d-block font-weight-bold" style="letter-spacing: 0.5px;">TOTAL PEMBAYARAN:</small>
-                        <h2 class="font-weight-bold text-success mb-1" id="previewModalTotalAmount">Rp 0</h2>
-                        <small class="text-muted" id="previewModalInstructionText">Arahkan kamera smartphone ke kode QR di bawah untuk menyelesaikan pembayaran.</small>
+                    <div class="alert alert-light border shadow-sm py-1 px-3 mx-auto mb-2 text-center" style="max-width: 480px;">
+                        <div class="d-flex align-items-center justify-content-center" style="gap: 10px;">
+                            <small class="text-muted font-weight-bold" style="letter-spacing: 0.5px;">TOTAL TAGIHAN:</small>
+                            <h3 class="font-weight-bold text-success mb-0" id="previewModalTotalAmount">Rp 0</h3>
+                        </div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.8rem;" id="previewModalInstructionText">Arahkan kamera smartphone ke kode QR di bawah untuk menyelesaikan pembayaran.</small>
                     </div>
 
                     <!-- Container Gambar Besar -->
-                    <div class="p-2 p-md-3 bg-light rounded border d-inline-block shadow-sm mb-2" style="max-width: 100%;">
-                        <img id="previewModalImage" src="" alt="Gambar Pembayaran" class="img-fluid rounded" style="max-height: 55vh; width: auto; object-fit: contain;">
+                    <div class="p-1 p-md-2 bg-light rounded border d-inline-block shadow-sm mb-1 text-center" style="max-width: 100%;">
+                        <img id="previewModalImage" src="" alt="Gambar Pembayaran" class="img-fluid rounded" style="max-height: 50vh; width: auto; object-fit: contain;">
                     </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">
+                    <button type="button" class="btn btn-secondary font-weight-bold btn-sm" data-dismiss="modal">
                         <i class="fas fa-arrow-left mr-1"></i> Kembali ke Kasir
                     </button>
-                    <button type="button" class="btn btn-success btn-lg font-weight-bold shadow-sm px-4" id="btnPreviewConfirmFinish">
+                    <button type="button" class="btn btn-success font-weight-bold shadow-sm px-4" id="btnPreviewConfirmFinish">
                         <i class="fas fa-check-circle mr-1"></i> Selesaikan Pembayaran
                     </button>
                 </div>
