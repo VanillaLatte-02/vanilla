@@ -10,6 +10,8 @@ use app\models\Transaksi;
 /** @var string|null $status */
 /** @var string|null $keyword */
 /** @var string|null $tanggal */
+/** @var int|null $kategori_id */
+/** @var app\models\Kategori[] $kategoriList */
 /** @var int $totalLunasCount */
 /** @var float $totalLunasNominal */
 /** @var int $totalDraftCount */
@@ -33,6 +35,15 @@ $formatRupiah = function ($num) {
     .table-clickable tbody tr.clickable-row:hover {
         background-color: rgba(0, 123, 255, 0.05) !important;
     }
+    .btn-reset-filter,
+    .btn-reset-filter:hover,
+    .btn-reset-filter:focus,
+    .btn-reset-filter:active {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+    }
 </style>
 <div class="transaksi-index">
 
@@ -54,13 +65,50 @@ $formatRupiah = function ($num) {
         </div>
     <?php endif; ?>
 
+    <?php 
+    $filterLabels = [];
+    if (!empty($keyword)) {
+        $filterLabels[] = 'Kata Kunci: "<strong>' . Html::encode($keyword) . '</strong>"';
+    }
+    if (!empty($tanggal)) {
+        $filterLabels[] = 'Tanggal: <strong>' . date('d/m/Y', strtotime($tanggal)) . '</strong>';
+    }
+    if (!empty($kategori_id) && !empty($kategoriList)) {
+        foreach ($kategoriList as $k) {
+            if ((string) $k->id === (string) $kategori_id) {
+                $filterLabels[] = 'Kategori: <strong>' . Html::encode($k->nama_kategori) . '</strong>';
+                break;
+            }
+        }
+    }
+    $isFiltered = !empty($filterLabels);
+    ?>
+
+    <?php if ($isFiltered): ?>
+        <div class="alert alert-info alert-dismissible fade show shadow-sm py-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center flex-wrap" style="gap: 6px;">
+                <i class="fas fa-filter mr-1"></i>
+                <span class="small font-weight-bold">Filter Aktif:</span>
+                <?= implode(' &bull; ', $filterLabels) ?>
+                <span class="small ml-2 text-white" style="color: #ffffff !important;">(Statistik ringkasan & riwayat transaksi disaring sesuai filter)</span>
+            </div>
+            <div>
+                <a href="<?= Url::to(['/transaksi/index', 'status' => $status]) ?>" class="btn btn-xs btn-reset-filter font-weight-bold" title="Reset Semua Filter">
+                    <i class="fas fa-undo mr-1"></i> Reset Filter
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Summary Cards -->
     <div class="row mb-3">
         <div class="col-md-6 col-lg-3 mb-2">
             <div class="info-box shadow-sm border-0 bg-white">
                 <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-double"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text text-muted">Transaksi Lunas</span>
+                    <span class="info-box-text text-muted">
+                        Transaksi Lunas <?= $isFiltered ? '<span class="badge badge-light border text-info" style="font-size: 0.65rem;">Filtered</span>' : '' ?>
+                    </span>
                     <span class="info-box-number font-weight-bold text-dark" style="font-size: 1.25rem;">
                         <?= number_format($totalLunasCount, 0, ',', '.') ?>
                     </span>
@@ -72,7 +120,9 @@ $formatRupiah = function ($num) {
             <div class="info-box shadow-sm border-0 bg-white">
                 <span class="info-box-icon bg-info elevation-1"><i class="fas fa-money-bill-wave"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text text-muted">Omset Lunas</span>
+                    <span class="info-box-text text-muted">
+                        Omset Lunas <?= $isFiltered ? '<span class="badge badge-light border text-info" style="font-size: 0.65rem;">Filtered</span>' : '' ?>
+                    </span>
                     <span class="info-box-number font-weight-bold text-success" style="font-size: 1.15rem;">
                         <?= $formatRupiah($totalLunasNominal) ?>
                     </span>
@@ -84,7 +134,9 @@ $formatRupiah = function ($num) {
             <div class="info-box shadow-sm border-0 bg-white">
                 <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-file-invoice text-white"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text text-muted">Draft Transaksi</span>
+                    <span class="info-box-text text-muted">
+                        Draft Transaksi <?= $isFiltered ? '<span class="badge badge-light border text-info" style="font-size: 0.65rem;">Filtered</span>' : '' ?>
+                    </span>
                     <span class="info-box-number font-weight-bold text-dark" style="font-size: 1.25rem;">
                         <?= number_format($totalDraftCount, 0, ',', '.') ?>
                     </span>
@@ -96,7 +148,9 @@ $formatRupiah = function ($num) {
             <div class="info-box shadow-sm border-0 bg-white">
                 <span class="info-box-icon bg-secondary elevation-1"><i class="fas fa-hourglass-half"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text text-muted">Nominal Pending Draft</span>
+                    <span class="info-box-text text-muted">
+                        Nominal Pending Draft <?= $isFiltered ? '<span class="badge badge-light border text-info" style="font-size: 0.65rem;">Filtered</span>' : '' ?>
+                    </span>
                     <span class="info-box-number font-weight-bold text-secondary" style="font-size: 1.15rem;">
                         <?= $formatRupiah($totalDraftNominal) ?>
                     </span>
@@ -111,22 +165,25 @@ $formatRupiah = function ($num) {
             <div class="d-flex flex-wrap align-items-center justify-content-between" style="gap: 10px;">
                 <!-- Filter Tabs: Semua / Lunas / Draft -->
                 <div class="btn-group" role="group">
-                    <a href="<?= Url::to(['transaksi/index', 'keyword' => $keyword, 'tanggal' => $tanggal]) ?>" 
+                    <a href="<?= Url::to(['/transaksi/index', 'keyword' => $keyword, 'tanggal' => $tanggal, 'kategori_id' => $kategori_id]) ?>" 
                        class="btn btn-sm <?= empty($status) ? 'btn-primary font-weight-bold' : 'btn-outline-secondary' ?>">
                         <i class="fas fa-list mr-1"></i> Semua (<?= $totalLunasCount + $totalDraftCount ?>)
                     </a>
-                    <a href="<?= Url::to(['transaksi/index', 'status' => 'LUNAS', 'keyword' => $keyword, 'tanggal' => $tanggal]) ?>" 
+                    <a href="<?= Url::to(['/transaksi/index', 'status' => 'LUNAS', 'keyword' => $keyword, 'tanggal' => $tanggal, 'kategori_id' => $kategori_id]) ?>" 
                        class="btn btn-sm <?= ($status === 'LUNAS') ? 'btn-success font-weight-bold' : 'btn-outline-success' ?>">
                         <i class="fas fa-check-circle mr-1"></i> Lunas (<?= $totalLunasCount ?>)
                     </a>
-                    <a href="<?= Url::to(['transaksi/index', 'status' => 'DRAFT', 'keyword' => $keyword, 'tanggal' => $tanggal]) ?>" 
+                    <a href="<?= Url::to(['/transaksi/index', 'status' => 'DRAFT', 'keyword' => $keyword, 'tanggal' => $tanggal, 'kategori_id' => $kategori_id]) ?>" 
                        class="btn btn-sm <?= ($status === 'DRAFT') ? 'btn-warning font-weight-bold text-dark' : 'btn-outline-warning text-dark' ?>">
                         <i class="fas fa-file-alt mr-1"></i> Draft (<?= $totalDraftCount ?>)
                     </a>
                 </div>
 
-                <!-- Tombol Buka Kasir Baru -->
-                <div>
+                <!-- Tombol Aksi Cepat -->
+                <div class="d-flex align-items-center" style="gap: 8px;">
+                    <a href="<?= Url::to(['/laporan/index']) ?>" class="btn btn-info btn-sm font-weight-bold shadow-sm">
+                        <i class="fas fa-chart-line mr-1"></i> Laporan & Statistik Omset
+                    </a>
                     <a href="<?= Url::to(['/kasir/index']) ?>" class="btn btn-primary btn-sm font-weight-bold shadow-sm">
                         <i class="fas fa-plus mr-1"></i> Buka Kasir Baru
                     </a>
@@ -136,31 +193,48 @@ $formatRupiah = function ($num) {
 
         <!-- Filter Form -->
         <div class="card-body bg-light border-bottom py-2 px-3">
-            <form method="get" action="<?= Url::to(['transaksi/index']) ?>">
+            <form method="get" action="<?= Url::to(['/transaksi/index']) ?>">
                 <?php if (!empty($status)): ?>
                     <input type="hidden" name="status" value="<?= Html::encode($status) ?>">
                 <?php endif; ?>
                 <div class="row align-items-center">
-                    <div class="col-md-5 mb-2 mb-md-0">
+                    <div class="col-lg-4 col-md-4 mb-2 mb-md-0">
                         <div class="input-group input-group-sm">
-                            <input type="text" name="keyword" class="form-control" placeholder="Cari No. Transaksi, Pelanggan, Kasir..." value="<?= Html::encode($keyword ?? '') ?>">
+                            <input type="text" name="keyword" class="form-control" placeholder="Cari No. Trx, Pelanggan, Kasir, Barang..." value="<?= Html::encode($keyword ?? '') ?>">
                             <div class="input-group-append">
                                 <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Cari</button>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-2 mb-md-0">
+                    <div class="col-lg-3 col-md-3 mb-2 mb-md-0">
                         <div class="input-group input-group-sm">
                             <div class="input-group-prepend">
-                                <span class="input-group-text bg-white"><i class="fas fa-calendar-alt"></i></span>
+                                <span class="input-group-text bg-white"><i class="fas fa-tags text-muted"></i></span>
+                            </div>
+                            <select name="kategori_id" class="form-control" onchange="this.form.submit()">
+                                <option value="">-- Semua Kategori --</option>
+                                <?php if (!empty($kategoriList)): ?>
+                                    <?php foreach ($kategoriList as $kat): ?>
+                                        <option value="<?= $kat->id ?>" <?= ((string)$kat->id === (string)($kategori_id ?? '')) ? 'selected' : '' ?>>
+                                            <?= Html::encode($kat->nama_kategori) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-3 mb-2 mb-md-0">
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-white"><i class="fas fa-calendar-alt text-muted"></i></span>
                             </div>
                             <input type="date" name="tanggal" class="form-control" value="<?= Html::encode($tanggal ?? '') ?>" onchange="this.form.submit()">
                         </div>
                     </div>
-                    <div class="col-md-3 text-md-right text-left">
-                        <?php if (!empty($keyword) || !empty($tanggal) || !empty($status)): ?>
-                            <a href="<?= Url::to(['transaksi/index']) ?>" class="btn btn-outline-secondary btn-sm" title="Reset Semua Filter">
-                                <i class="fas fa-undo mr-1"></i> Reset Filter
+                    <div class="col-lg-2 col-md-2 text-md-right text-left">
+                        <?php if (!empty($keyword) || !empty($tanggal) || !empty($status) || !empty($kategori_id)): ?>
+                            <a href="<?= Url::to(['/transaksi/index', 'status' => $status]) ?>" class="btn btn-outline-secondary btn-sm" title="Reset Filter Pencarian">
+                                <i class="fas fa-undo mr-1"></i> Reset
                             </a>
                         <?php endif; ?>
                     </div>
@@ -176,7 +250,7 @@ $formatRupiah = function ($num) {
                 'rowOptions' => function ($model, $key, $index, $grid) {
                     return [
                         'class' => 'clickable-row',
-                        'data-href' => Url::to(['transaksi/detail', 'id' => $model->id]),
+                        'data-href' => Url::to(['/transaksi/detail', 'id' => $model->id]),
                     ];
                 },
                 'layout' => "{items}\n<div class=\"card-footer bg-white clearfix d-flex flex-wrap justify-content-between align-items-center py-2 px-3\"><div class=\"text-muted small\">{summary}</div><div>{pager}</div></div>",
@@ -264,19 +338,19 @@ $formatRupiah = function ($num) {
                         'headerOptions' => ['style' => 'width: 220px; text-align: center;'],
                         'contentOptions' => ['style' => 'text-align: center;'],
                         'value' => function ($model) use ($formatRupiah) {
-                            $btnDetail = Html::a('<i class="fas fa-eye"></i>', ['transaksi/detail', 'id' => $model->id], [
+                            $btnDetail = Html::a('<i class="fas fa-eye"></i>', ['/transaksi/detail', 'id' => $model->id], [
                                 'class' => 'btn btn-info btn-sm mr-1',
                                 'title' => 'Rincian Transaksi',
                             ]);
 
                             if (strtoupper($model->status) === Transaksi::STATUS_DRAFT) {
                                 // Tombol Buka / Lanjutkan di Kasir
-                                $btnLanjutKasir = '<a href="' . Url::to(['kasir/index', 'draft_id' => $model->id]) . '" class="btn btn-primary btn-sm mr-1" title="Lanjutkan ke Draft Kasir (Edit/Bayar POS)">' .
+                                $btnLanjutKasir = '<a href="' . Url::to(['/kasir/index', 'draft_id' => $model->id]) . '" class="btn btn-primary btn-sm mr-1" title="Lanjutkan ke Draft Kasir (Edit/Bayar POS)">' .
                                                   '<i class="fas fa-shopping-basket mr-1"></i> Ke Kasir' .
                                                   '</a>';
 
                                 // Tombol Hapus Draft
-                                $btnHapus = Html::beginForm(['transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline']) .
+                                $btnHapus = Html::beginForm(['/transaksi/hapus-draft', 'id' => $model->id], 'post', ['class' => 'd-inline']) .
                                             '<button type="button" class="btn btn-outline-danger btn-sm btn-action-hapus" data-nomor="' . Html::encode($model->nomor_transaksi) . '" title="Hapus Draft">' .
                                             '<i class="fas fa-trash-alt"></i>' .
                                             '</button>' .
@@ -285,7 +359,7 @@ $formatRupiah = function ($num) {
                                 return '<div class="btn-group btn-group-sm">' . $btnDetail . $btnLanjutKasir . $btnHapus . '</div>';
                             } else {
                                 // Status LUNAS: Cetak Struk
-                                $btnStruk = '<a href="' . Url::to(['transaksi/struk', 'id' => $model->id]) . '" target="_blank" class="btn btn-outline-secondary btn-sm" title="Cetak Struk">' .
+                                $btnStruk = '<a href="' . Url::to(['/transaksi/struk', 'id' => $model->id]) . '" target="_blank" class="btn btn-outline-secondary btn-sm" title="Cetak Struk">' .
                                             '<i class="fas fa-print mr-1"></i> Struk' .
                                             '</a>';
 

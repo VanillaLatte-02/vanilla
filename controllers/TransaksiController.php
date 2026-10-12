@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use Yii;
 use app\models\Barang;
+use app\models\Kategori;
 use app\models\LogBarang;
 use app\models\Transaksi;
 use app\models\TransaksiDetail;
@@ -36,32 +37,56 @@ class TransaksiController extends Controller
      * @param string|null $status
      * @param string|null $keyword
      * @param string|null $tanggal
+     * @param int|null $kategori_id
      * @return string
      */
-    public function actionIndex($status = null, $keyword = null, $tanggal = null)
+    public function actionIndex($status = null, $keyword = null, $tanggal = null, $kategori_id = null)
     {
         $status = Yii::$app->request->get('status', $status);
         $keyword = Yii::$app->request->get('keyword', $keyword);
         $tanggal = Yii::$app->request->get('tanggal', $tanggal);
+        $kategori_id = Yii::$app->request->get('kategori_id', $kategori_id);
 
+        // Helper filter yang diterapkan baik untuk query tabel maupun agregasi ringkasan statistik
+        $applyFilters = function ($q) use ($keyword, $tanggal, $kategori_id) {
+            if (!empty($keyword)) {
+                $subQueryKeyword = (new \yii\db\Query())
+                    ->select('transaksi_id')
+                    ->from(TransaksiDetail::tableName())
+                    ->where(['like', 'nama_barang', $keyword]);
+
+                $q->andWhere([
+                    'or',
+                    ['like', 'nomor_transaksi', $keyword],
+                    ['like', 'nama_pelanggan', $keyword],
+                    ['like', 'nama_kasir', $keyword],
+                    ['in', 'id', $subQueryKeyword],
+                ]);
+            }
+
+            if (!empty($tanggal)) {
+                $q->andWhere(['between', 'tanggal', $tanggal . ' 00:00:00', $tanggal . ' 23:59:59']);
+            }
+
+            if (!empty($kategori_id)) {
+                $subQueryKategori = (new \yii\db\Query())
+                    ->select('td.transaksi_id')
+                    ->from(['td' => TransaksiDetail::tableName()])
+                    ->innerJoin(['b' => Barang::tableName()], 'b.id = td.barang_id')
+                    ->where(['b.kategori_id' => (int) $kategori_id]);
+
+                $q->andWhere(['in', 'id', $subQueryKategori]);
+            }
+        };
+
+        // Query Utama untuk Tabel GridView
         $query = Transaksi::find()->with(['details']);
 
         if (!empty($status)) {
             $query->andWhere(['status' => strtoupper($status)]);
         }
 
-        if (!empty($keyword)) {
-            $query->andWhere([
-                'or',
-                ['like', 'nomor_transaksi', $keyword],
-                ['like', 'nama_pelanggan', $keyword],
-                ['like', 'nama_kasir', $keyword],
-            ]);
-        }
-
-        if (!empty($tanggal)) {
-            $query->andWhere(['like', 'tanggal', $tanggal . '%', false]);
-        }
+        $applyFilters($query);
 
         $query->orderBy(['id' => SORT_DESC]);
 
@@ -72,17 +97,26 @@ class TransaksiController extends Controller
             ],
         ]);
 
-        // Ringkasan Statistik
-        $totalLunasCount = (int) Transaksi::find()->where(['status' => Transaksi::STATUS_LUNAS])->count();
-        $totalLunasNominal = (float) Transaksi::find()->where(['status' => Transaksi::STATUS_LUNAS])->sum('total_harga') ?: 0;
-        $totalDraftCount = (int) Transaksi::find()->where(['status' => Transaksi::STATUS_DRAFT])->count();
-        $totalDraftNominal = (float) Transaksi::find()->where(['status' => Transaksi::STATUS_DRAFT])->sum('total_harga') ?: 0;
+        // Ringkasan Statistik (Dihitung berdasarkan filter aktif: tanggal, kategori, dan search)
+        $lunasQuery = Transaksi::find()->where(['status' => Transaksi::STATUS_LUNAS]);
+        $applyFilters($lunasQuery);
+        $totalLunasCount = (int) $lunasQuery->count();
+        $totalLunasNominal = (float) $lunasQuery->sum('total_harga') ?: 0;
+
+        $draftQuery = Transaksi::find()->where(['status' => Transaksi::STATUS_DRAFT]);
+        $applyFilters($draftQuery);
+        $totalDraftCount = (int) $draftQuery->count();
+        $totalDraftNominal = (float) $draftQuery->sum('total_harga') ?: 0;
+
+        $kategoriList = Kategori::find()->orderBy(['nama_kategori' => SORT_ASC])->all();
 
         return $this->render('index', [
             'dataProvider' => $dataProvider,
             'status' => $status,
             'keyword' => $keyword,
             'tanggal' => $tanggal,
+            'kategori_id' => $kategori_id,
+            'kategoriList' => $kategoriList,
             'totalLunasCount' => $totalLunasCount,
             'totalLunasNominal' => $totalLunasNominal,
             'totalDraftCount' => $totalDraftCount,
@@ -217,6 +251,16 @@ class TransaksiController extends Controller
         return $this->render('struk', [
             'model' => $model,
         ]);
+    }
+
+    /**
+     * Pintasan Halaman Laporan Statistik Omset
+     *
+     * @return \yii\web\Response
+     */
+    public function actionLaporan()
+    {
+        return $this->redirect(['/laporan/index']);
     }
 
     /**

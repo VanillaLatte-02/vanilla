@@ -80,6 +80,15 @@ $roleLabel = !empty($userRoles) ? implode(', ', array_map('ucfirst', $userRoles)
                     </li>
                 <?php endif; ?>
 
+                <?php if (Helper::checkRoute('/laporan/index')): ?>
+                    <li class="nav-item">
+                        <a href="<?= Url::to(['/laporan/index']) ?>" class="nav-link">
+                            <i class="nav-icon fas fa-chart-line text-info"></i>
+                            <p>Laporan Omset</p>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
                 <?php if (Helper::checkRoute('/log-barang/index')): ?>
                     <li class="nav-item">
                         <a href="<?= Url::to(['/log-barang/index']) ?>" class="nav-link">

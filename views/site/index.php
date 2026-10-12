@@ -37,6 +37,13 @@ $fitur = [
         'url' => ['/transaksi/index'],
     ],
     [
+        'label' => 'Laporan Omset',
+        'desc' => 'Statistik omset harian & bulanan',
+        'icon' => 'fa-chart-line',
+        'color' => 'indigo',
+        'url' => ['/laporan/index'],
+    ],
+    [
         'label' => 'Log Barang',
         'desc' => 'Histori mutasi stok barang',
         'icon' => 'fa-history',

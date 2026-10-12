@@ -101,14 +101,14 @@ use yii\helpers\Url;
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
-                <?= Html::a('<i class="fas fa-id-card mr-2"></i> Profile Akun', Yii::$app->user->isGuest ? ['site/login'] : ['user/view', 'id' => Yii::$app->user->id], ['class' => 'dropdown-item']) ?>
+                <?= Html::a('<i class="fas fa-id-card mr-2"></i> Profile Akun', Yii::$app->user->isGuest ? ['/site/login'] : ['/user/view', 'id' => Yii::$app->user->id], ['class' => 'dropdown-item']) ?>
                 <?php if (\mdm\admin\components\Helper::checkRoute('/user/index')): ?>
-                    <?= Html::a('<i class="fas fa-users-cog mr-2"></i> Manajemen User', ['user/index'], ['class' => 'dropdown-item']) ?>
+                    <?= Html::a('<i class="fas fa-users-cog mr-2"></i> Manajemen User', ['/user/index'], ['class' => 'dropdown-item']) ?>
                 <?php endif; ?>
                 <?php if (Yii::$app->user->isGuest): ?>
-                    <?= Html::a('<i class="fas fa-sign-in-alt mr-2"></i> Login', ['site/login'], ['class' => 'dropdown-item']) ?>
+                    <?= Html::a('<i class="fas fa-sign-in-alt mr-2"></i> Login', ['/site/login'], ['class' => 'dropdown-item']) ?>
                 <?php else: ?>
-                    <?= Html::a('<i class="fas fa-sign-out-alt mr-2"></i> Logout', ['site/logout'], [
+                    <?= Html::a('<i class="fas fa-sign-out-alt mr-2"></i> Logout', ['/site/logout'], [
                         'class' => 'dropdown-item',
                         'data-method' => 'post'
                     ]) ?>
